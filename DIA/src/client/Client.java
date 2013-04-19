@@ -15,7 +15,7 @@ import client.state.State;
  * This class is used for representing the client side.
  * @author ucar
  * 
- * Test Github
+ * Test Github BUrak
  *
  */
 public class Client implements Observer {
