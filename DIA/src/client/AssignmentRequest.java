@@ -2,6 +2,7 @@ package client;
 /**
  * 
  * @author seyhan
+ * THe class is used for
  *
  */
 public class AssignmentRequest extends Message {
