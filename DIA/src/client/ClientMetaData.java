@@ -8,6 +8,7 @@ package client;
  *
  */
 public class ClientMetaData {
+	
 	//Declare variable
 	private int port = 0;
 	private String ipAddress = "";
