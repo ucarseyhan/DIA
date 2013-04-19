@@ -5,7 +5,7 @@ package server;
  * client knows the other clients for interaction.
  * 
  * @author ucar
- *
+ * Windows
  */
 public class ClientMetaData {
 	//Declare variable
