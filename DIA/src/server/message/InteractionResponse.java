@@ -9,7 +9,7 @@ package server.message;
  * @author ucar
  *
  */
-public class InteractionResponse extends InteractionMessage {
+public class InteractionResponse extends InteractionMessage implements Interactable {
 	//Declare variable.
 	private String reply = "";
 	//Default constructor.
@@ -34,6 +34,30 @@ public class InteractionResponse extends InteractionMessage {
 	}
 	public void setReply(String reply) {
 		this.reply = reply;
+	}
+	@Override
+	public void doOperation(Interactable message, boolean myClient,
+			String assignedServerIp) {
+		try {
+			String ip = getReceiverIpAddress();
+			int port = getReceiverPort();
+			forward(ip, port, message);
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+	
+		
+	}
+	@Override
+	public String getClientIp() {
+		// TODO Auto-generated method stub
+		return super.getSenderIpAddress();
+	}
+	@Override
+	public String getDestinationIp() {
+		// TODO Auto-generated method stub
+		return super.getReceiverIpAddress();
 	}
 	
 }

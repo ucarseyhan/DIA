@@ -3,8 +3,7 @@ package server;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-
-import server.message.Message;
+import server.message.Interactable;
 import server.message.MessageBox;
 /**
  * Server helper class is used for the purpose each server 
@@ -12,6 +11,7 @@ import server.message.MessageBox;
  * decide one of the server as the responsible server central 
  * server send responsibility packet to server. This server 
  * is listening via the usage of the ServerHelper class
+ * 
  * @author seyhan
  *
  */
@@ -20,6 +20,7 @@ public class ServerHelper implements Runnable {
 	 * Declare the variable.
 	 */
 	private int port;
+	//Message box for coming packets
 	private MessageBox messageBox;
 	private ObjectInputStream inputFromClient;
 	/**
@@ -47,7 +48,7 @@ public class ServerHelper implements Runnable {
 			while (true) {
 				Socket clientSocket =  serverSocket.accept();
 				inputFromClient = new ObjectInputStream(clientSocket.getInputStream());	
-				Message m = (Message)inputFromClient.readObject();
+				Interactable m = (Interactable)inputFromClient.readObject();
 				messageBox.addMessage(m);
 			}
 		} catch (Exception e) {

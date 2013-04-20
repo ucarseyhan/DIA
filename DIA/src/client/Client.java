@@ -22,15 +22,19 @@ import client.state.State;
  * This class is used for representing the client side.
  * @author ucar
  * 
- * Test Github BUrak
  *
  */
 public class Client implements Observer {
-	//Declare variables
+	/**
+	 * States of the client
+	 */
 	private State UNDECIDED;
 	private State DECIDED;
 	private State SERVERELECTION;
 	private State CURRENTSTATE	= UNDECIDED;
+	//======================================
+	
+	
 	private ArrayList<ClientMetaData> clientList;
 	private String controllerIpAddress = "";
 	private int controllerPort = 4000;

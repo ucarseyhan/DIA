@@ -12,7 +12,7 @@ package server.message;
  * @author ucar
  *
  */
-public class ControllerInformationMessage extends Message {
+public class ControllerInformationMessage{
 	//Declare variables.
 	private String clientIPAddress = "";
 	private int clientPort = 0;
