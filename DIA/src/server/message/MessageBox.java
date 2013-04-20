@@ -1,7 +1,8 @@
-package server;
+package server.message;
 
 import java.util.Observable;
 import java.util.Stack;
+
 
 public class MessageBox extends Observable {
 	/**

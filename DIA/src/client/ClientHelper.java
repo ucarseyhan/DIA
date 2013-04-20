@@ -5,6 +5,9 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import client.message.Message;
+import client.message.MessageBox;
+
 public class ClientHelper implements Runnable {
 	/**
 	 * NodeHelper class is used for listening the upcoming connection. It is

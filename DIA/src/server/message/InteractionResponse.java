@@ -1,4 +1,6 @@
-package server;
+package server.message;
+
+
 /**
  * This class is used for sending the server response to user.In
  * other words after interaction target server informs the client

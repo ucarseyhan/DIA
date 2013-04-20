@@ -3,6 +3,9 @@ package server;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import server.message.Message;
+import server.message.MessageBox;
 /**
  * Server helper class is used for the purpose each server 
  * is listening the central server. When the central server

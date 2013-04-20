@@ -1,4 +1,6 @@
-package server;
+package client.message;
+
+
 /**
  * This class is used for the client when it is in the 
  * UNDECIDED state.When the clients enter the system it

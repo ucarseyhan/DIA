@@ -1,4 +1,6 @@
-package client;
+package client.message;
+
+
 /**
  * The periodic server hello message is used by the clients 
  * to control the server existence. By using this message client

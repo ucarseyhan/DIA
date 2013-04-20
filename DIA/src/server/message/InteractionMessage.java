@@ -1,4 +1,7 @@
-package server;
+package server.message;
+
+import server.ServerOperation;
+
 /**
  * This class is super class of both client interaction request 
  * and interaction reply. Whenever clients want to interact with 

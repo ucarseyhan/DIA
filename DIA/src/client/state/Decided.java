@@ -4,10 +4,10 @@ import java.util.Random;
 
 import client.Client;
 import client.ClientMetaData;
-import client.ControllerInformationMessage;
-import client.InteractionRequest;
-import client.InteractionResponse;
-import client.PeriodicServerMessage;
+import client.message.ControllerInformationMessage;
+import client.message.InteractionRequest;
+import client.message.InteractionResponse;
+import client.message.PeriodicServerMessage;
 /**
  * This class is used for representing the Client 
  * DECIDE state. The necessary operations which are 

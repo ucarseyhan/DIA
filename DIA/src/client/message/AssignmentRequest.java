@@ -1,4 +1,6 @@
-package client;
+package client.message;
+
+
 /**
  * 
  * @author seyhan

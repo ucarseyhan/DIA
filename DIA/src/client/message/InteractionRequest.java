@@ -1,4 +1,6 @@
-package client;
+package client.message;
+
+
 /**
  * This class is used for the client interaction request.When the 
  * client wants to communicate with other client it generates the 

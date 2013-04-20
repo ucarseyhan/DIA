@@ -1,9 +1,9 @@
 package client.state;
 
-import client.ControllerInformationMessage;
-import client.InteractionRequest;
-import client.InteractionResponse;
-import client.PeriodicServerMessage;
+import client.message.ControllerInformationMessage;
+import client.message.InteractionRequest;
+import client.message.InteractionResponse;
+import client.message.PeriodicServerMessage;
 
 public interface State {
 	public void requestInteraction();

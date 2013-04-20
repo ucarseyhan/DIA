@@ -1,4 +1,4 @@
-package client;
+package client.message;
 
 public class Message {
 	

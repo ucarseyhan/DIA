@@ -1,11 +1,11 @@
 package client.state;
 
-import client.AssignmentRequest;
 import client.Client;
-import client.ControllerInformationMessage;
-import client.InteractionRequest;
-import client.InteractionResponse;
-import client.PeriodicServerMessage;
+import client.message.AssignmentRequest;
+import client.message.ControllerInformationMessage;
+import client.message.InteractionRequest;
+import client.message.InteractionResponse;
+import client.message.PeriodicServerMessage;
 /**
  * The ServerElection class is used for the state 
  * SERVER_ELECTION.In this class server has already

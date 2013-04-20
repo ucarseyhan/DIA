@@ -1,4 +1,6 @@
-package client;
+package client.message;
+
+
 /**
  * This class is super class of both client interaction request 
  * and interaction reply. Whenever clients want to interact with 

@@ -9,6 +9,13 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import client.message.ControllerInformationMessage;
+import client.message.InteractionMessage;
+import client.message.InteractionRequest;
+import client.message.InteractionResponse;
+import client.message.Message;
+import client.message.MessageBox;
+import client.message.PeriodicServerMessage;
 import client.state.State;
 
 /**
