@@ -1,4 +1,7 @@
 package server.message;
+import server.ClientMetaData;
+import server.Operation;
+import server.ServerMetaData;
 
 /**
  * This class is used for the client interaction request.When the 
@@ -53,7 +56,24 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 		// TODO Auto-generated method stub
 		return super.getReceiverIpAddress();
 	}
-	
+	@Override
+	public Operation getOperation(){
+		return super.getOperation();
+		
+	}
+	@Override
+	public boolean isServer() {
+		// TODO Auto-generated method stub
+		return super.isServerRole();
+	}
+	@Override
+	public ServerMetaData getServerMetaData(){
+		return super.getServerMetaData();
+	}
+	@Override
+	public ClientMetaData getClientMetaData(){
+		return super.getClientMetaData();
+	}
 
 	//=======Getter and setter method==========================
 	public String getMessage() {
@@ -84,6 +104,7 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	public String getMyIp() {
 		return super.getSenderIpAddress();
 	}
+
 
 
 

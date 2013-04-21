@@ -5,7 +5,7 @@ import java.net.Socket;
 import java.util.Hashtable;
 import server.ClientMetaData;
 import server.ServerMetaData;
-import server.ServerOperation;
+import server.Operation;
 
 /**
  * This class is super class of both client interaction request 
@@ -25,16 +25,20 @@ public class InteractionMessage{
 	private String receiverIpAddress   = ""; //Receiver IP address
 	private int receiverPort = 0;			 //Receiver port
 	private int receiverId = 0; 
-	private ServerOperation operation;
+	private Operation operation;
 	private Hashtable<String, ClientMetaData> clientList;
 	private Hashtable<String, ServerMetaData> serverList;
+	private ServerMetaData serverMetaData;
+	private ClientMetaData clientMetaData;
+	private boolean serverRole = false;
 	//Default Constructor
 	public InteractionMessage(){
 		
 	}
 	//Specified constructor
 	public InteractionMessage(String senderIpAddress, int senderPort,
-			String receiverIpAddress, int receiverPort) {
+			String receiverIpAddress, int receiverPort)
+	{
 		this.senderIpAddress = senderIpAddress;
 		this.senderPort = senderPort;
 		this.receiverIpAddress = receiverIpAddress;
@@ -42,14 +46,14 @@ public class InteractionMessage{
 	}
 	
 	public InteractionMessage(String senderIpAddress, int senderPort,
-			ServerOperation operation,Hashtable<String, ClientMetaData> clientList,
-			Hashtable<String, ServerMetaData> serverList) 
+			Operation operation,Hashtable<String, ClientMetaData> clientList,
+			ServerMetaData serverMetaData) 
 	{
 		this.senderIpAddress = senderIpAddress;
 		this.senderPort = senderPort;
 		this.operation = operation;
 		this.clientList = clientList;
-		this.serverList = serverList;
+		this.serverMetaData = serverMetaData;
 	}
 	
 	public void forward(String ip,int port,Interactable m){
@@ -98,10 +102,10 @@ public class InteractionMessage{
 	public void setReceiverPort(int receiverPort) {
 		this.receiverPort = receiverPort;
 	}
-	public ServerOperation getOperation() {
+	public Operation getOperation() {
 		return operation;
 	}
-	public void setOperation(ServerOperation operation) {
+	public void setOperation(Operation operation) {
 		this.operation = operation;
 	}
 	public Hashtable<String, ClientMetaData> getClientList() {
@@ -110,11 +114,11 @@ public class InteractionMessage{
 	public void setClientList(Hashtable<String, ClientMetaData> clientList) {
 		this.clientList = clientList;
 	}
-	public Hashtable<String, ServerMetaData> getServerList() {
-		return serverList;
+	public ServerMetaData getServerMetaData() {
+		return serverMetaData;
 	}
-	public void setServerList(Hashtable<String, ServerMetaData> serverList) {
-		this.serverList = serverList;
+	public void setServerList(ServerMetaData serverMetaData) {
+		this.serverMetaData = serverMetaData;
 	}
 	public int getSenderId() {
 		return senderId;
@@ -128,6 +132,30 @@ public class InteractionMessage{
 	public void setReceiverId(int receiverId) {
 		this.receiverId = receiverId;
 	}
+	public boolean isServerRole() {
+		return serverRole;
+	}
+	public void setServerRole(boolean serverRole) {
+		this.serverRole = serverRole;
+	}
+	public Hashtable<String, ServerMetaData> getServerList() {
+		return serverList;
+	}
+	public void setServerList(Hashtable<String, ServerMetaData> serverList) {
+		this.serverList = serverList;
+	}
+	public void setServerMetaData(ServerMetaData serverMetaData) {
+		this.serverMetaData = serverMetaData;
+	}
+	public ClientMetaData getClientMetaData() {
+		return clientMetaData;
+	}
+	public void setClientMetaData(ClientMetaData clientMetaData) {
+		this.clientMetaData = clientMetaData;
+	}
+	
+	
+	
 
 	
 

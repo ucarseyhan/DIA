@@ -1,0 +1,6 @@
+package server;
+
+public class Constants {
+    public static  String RESULTFILE       = "/home/ku_dia/files/results.txt";
+    public static  String PARAMETER        = "/home/ku_dia/files/parameter.txt";
+}

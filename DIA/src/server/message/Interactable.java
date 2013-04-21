@@ -1,5 +1,11 @@
 package server.message;
 
+
+
+import server.ClientMetaData;
+import server.Operation;
+import server.ServerMetaData;
+
 public interface Interactable {
 	
 	public void doOperation(Interactable message,boolean myClient,String assignedServerIp);
@@ -9,5 +15,9 @@ public interface Interactable {
 	public String getSenderIpAddress();
 	public int getSenderPort();
 	public int getReceiverPort();
+	public Operation getOperation();
+	public boolean isServer();
+	public ServerMetaData getServerMetaData();
+	public ClientMetaData getClientMetaData();
 
 }

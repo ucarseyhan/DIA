@@ -1,8 +1,14 @@
 package server;
 
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.*;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Observable;
@@ -14,6 +20,7 @@ import java.util.TimerTask;
 
 import server.message.Interactable;
 import server.message.InteractionMessage;
+import server.message.InteractionResponse;
 import server.message.MessageBox;
 /**
  * Server class is sued for creating the server object in simulation.
@@ -38,6 +45,7 @@ public class Server implements Observer
 	private MessageBox messageBox;
 	private Hashtable<String, ClientMetaData> clientList;
 	private Hashtable<String, ServerMetaData> serverList;
+	private ServerMetaData myServerData;
 	private ServerHelper serverHelper;
 	//Timer related objects
 	private Timer timer;
@@ -54,6 +62,11 @@ public class Server implements Observer
 	 */
 	public Server(String ip,int id)
 	{
+		/**
+		 * Read the server and parameter files and
+		 * adjust necessary settings
+		 */
+		readServerFiles();
 		//Set necessary variables
 		this.setId(id);
 		this.setServerIp(serverIp);
@@ -68,20 +81,78 @@ public class Server implements Observer
 		/**
 		 * Set the interaction message's attributes.
 		 */
+		myServerData = new ServerMetaData(serverPort, serverIp,capacity);
+		//No need to send client list
+		myServerData.setConnectedClient(null);
 		
 		periodicServerMessage = new InteractionMessage(serverIp,serverPort,
-														ServerOperation.DEFAULT,
+														Operation.DEFAULT,
 														clientList,
-														serverList); 
+														myServerData);
+		//Set the message sender as server
+		periodicServerMessage.setServerRole(true);
+		periodicServerMessage.setOperation(Operation.HELLO);
 		
 		//Create the random objects
-		rand = new Random();
+		rand = new Random();		
+		/**
+		 * Start the Server HELLO messages
+		 */
+		initialTimerTask();
 	}
 	/**
 	 * Default constructor.
 	 */
 	public Server(){
 		
+	}
+	public void readServerFiles(){
+		try {
+	        FileInputStream fstream = null;
+	        serverIp = GetMachineName();
+	        try {
+	            fstream             = new FileInputStream(Constants.PARAMETER);
+	            DataInputStream in  = new DataInputStream(fstream);
+	            BufferedReader br   = new BufferedReader(new InputStreamReader(in));
+	            String strLine;
+	            /**
+	             * Add parameters into parameter file
+	             * and read here.
+	             */
+	            String[] splitted = new String[2];
+	            while ((strLine = br.readLine()) != null) {
+	                if(!strLine.equalsIgnoreCase("")){
+	                    splitted = strLine.split(" ");
+	                    String ip = splitted[0];
+	                    int capacity = Integer.parseInt(splitted[1]);
+	                    /**
+	                     * Different than current server then create 
+	                     * the Server meta data
+	                     */
+	                    if(!serverIp.equals(ip))
+	                    {
+	                    	//Initial connected client is empty
+	                    	ServerMetaData serverMetaData = new ServerMetaData();
+	                    	serverMetaData.setServerIp(ip);
+	                    	serverMetaData.setCapacity(capacity);
+	                    	serverList.put(ip, serverMetaData);	
+	                    }
+	                }
+	            }
+	            in.close();
+	        } catch (IOException ex) {
+	            System.err.println("could not read the parameter value!");
+	        } finally {
+	            try {
+	                fstream.close();
+	            } catch (IOException ex) {
+	                System.err.println("could not finish IO operation!");
+	            }
+	        }
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("Server.readServerFiles()");
+		}
 	}
 	/**
 	 * Create the initialTimer Task
@@ -156,6 +227,7 @@ public class Server implements Observer
 				String clientIp = msg.getSenderIpAddress();
 				boolean myClient = isMyClient(targetIp);
 				String assignedServerIp = findClientAssignedServer(clientIp);
+				doOperationProcess(msg);
 				msg.doOperation(msg, myClient, assignedServerIp);
 				
 			}
@@ -164,34 +236,226 @@ public class Server implements Observer
 			e.printStackTrace();
 		}
 	}
-	public boolean isMyClient(String cIp) {
+	public void doOperationProcess(Interactable msg)
+	{
+		try 
+		{
+			 Operation op = msg.getOperation();
+			switch (op) 
+			{
+			//Add client into client list
+			case ADD:
+				break;
+			//Delete client	
+			case DELETE:
+				responseDeleteOperation(msg);
+				break;
+			//Receives HELLO messages
+			case HELLO:
+				responseHelloOperation(msg);
+				break;
+			//Return server summary
+			case SUMMARY:
+				responseSummaryOperation(msg);
+				break;
+
+			default:
+				System.out.println("NULL OPERATION");
+				break;
+			}
+		} 
+		catch (Exception e) 
+		{
+			System.out.println("Server.doOperationProcess()");
+		}
+		
+	}
+	/**
+	 * ADD operation is used by clients. After proposed 
+	 * algorithm execution, client selects one of the 
+	 * server and send an interaction request which keeps
+	 * the ADD operation.
+	 * 
+	 * @param msg
+	 */
+	public void responseAddOperation(Interactable msg)
+	{
+		try 
+		{
+			String clientIp = msg.getSenderIpAddress();
+			if(clientList.containsKey(clientIp))
+			{
+				clientList.remove(clientIp);
+				clientList.put(clientIp, msg.getClientMetaData());
+			}
+			else
+			{
+				clientList.put(clientIp, msg.getClientMetaData());
+			}
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.responseAddOperation()");
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * Delete operation can be only used by server. Clients are allowed
+	 * to request ADD operation.If any server request delete operation 
+	 * from current server then  control if it is verified server. Then,
+	 * control the client list if the parameter client exist.
+	 * @param msg
+	 */
+	public void responseDeleteOperation(Interactable msg)
+	{
+		try 
+		{
+			String serverIp = msg.getSenderIpAddress();
+			if(serverList.containsKey(serverIp))
+			{
+				/**
+				 * Read the client meta data  and apply
+				 * the operation
+				 */
+				ClientMetaData clientMetaData = msg.getClientMetaData();
+				String clientIp = clientMetaData.getIpAddress();
+				if(clientList.containsKey(clientIp))
+				{
+					clientList.remove(clientIp);
+				}
+			}
+
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.responseDeleteOperation()");
+			e.printStackTrace();
+		}
+		
+	}
+	/**
+	 * HELLO message can come from both server and clients
+	 * So, if it comes from server update the server  
+	 */
+	public void responseHelloOperation(Interactable msg)
+	{
+		try {
+			boolean isServer = msg.isServer();
+			/**
+			 * If message sender is server.
+			 */
+			if(isServer)
+			{
+				/**
+				 * Extract information update server list.
+				 */
+				String serverIp = msg.getSenderIpAddress();
+				ServerMetaData serverMetaData = msg.getServerMetaData();
+				if(serverList.containsKey(serverIp))
+				{
+					serverList.remove(serverIp);
+					serverList.put(serverIp, serverMetaData);
+				}
+				else
+				{
+					/**
+					 * Else put it into server list.
+					 */
+					serverList.put(serverIp, serverMetaData);
+				}
+			}
+			/**
+			 * Else it comes from client
+			 */
+			else
+			{
+				String clientIp = msg.getSenderIpAddress();
+				ClientMetaData clientMetaData = msg.getClientMetaData();
+				if(clientList.containsKey(clientIp))
+				{
+					clientList.remove(clientIp);
+					clientList.put(clientIp, clientMetaData);
+				}
+				else
+				{
+					clientList.put(clientIp, clientMetaData);
+					
+				}
+				
+			}
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.responseHelloOperation()");
+			e.printStackTrace();
+		}
+	}
+	public void responseSummaryOperation(Interactable msg)
+	{
+		try 
+		{
+			/**
+			 * Generate the summary information
+			 * via using the servers
+			 */
+			String reply = "Summary Of Servers";
+			String clientIp = msg.getSenderIpAddress();
+			int clientPort = msg.getSenderPort();
+			//Generate the summary response
+			InteractionResponse summResponse = new InteractionResponse(serverIp, serverPort, clientIp, clientPort, reply);
+			//Set as this message is summary of server
+			summResponse.setOperation(Operation.SUMMARY);
+			//Set the server list
+			summResponse.setServerList(serverList);
+			//Connect the client and send the server list.
+			connectToClientNode(clientIp, clientPort, summResponse);
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.responseSummaryOperation()");
+			e.printStackTrace();
+		}
+	}
+	public boolean isMyClient(String cIp) 
+	{
 
 		try {
 			Set<String> set = clientList.keySet();
 			Iterator<String> i = set.iterator();
-			while (i.hasNext()) {
+			while (i.hasNext()) 
+			{
 				String ip = (String) i.next();
 				if (ip.equals(cIp))
 					return true;
 			}
 			return false;
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			// TODO: handle exception
 			e.printStackTrace();
 			return false;
 		}
 
 	}
-	public String findClientAssignedServer(String cIp){
-		try {
+	public String findClientAssignedServer(String cIp)
+	{
+		try 
+		{
 			Set<String> set = serverList.keySet();
 			Iterator<String> i = set.iterator();
-			while (i.hasNext()) {
+			while (i.hasNext()) 
+			{
 				String ip = (String) i.next();
 				if(ip.equals(cIp)) return ip ;	
 			}
 			return "";
-		} catch (Exception e) {
+		} catch (Exception e) 
+		{
 			// TODO: handle exception
 			e.printStackTrace();
 			return "";
@@ -202,22 +466,70 @@ public class Server implements Observer
 	 * connect to client and say that it is server of the 
 	 * client.
 	 */
-	public void connectToClientNode(String ip,int port,InteractionMessage m){
-		try {
-			try {
-				//Socket socket = new Socket("172.23.121.38",this.clientPort);
+	public void connectToClientNode(String ip,int port,InteractionMessage m)
+	{
+		try 
+		{
+			try 
+			{
 				Socket socket = new Socket(ip,port);
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 				toServer.writeObject(m);
 				toServer.flush();
 				socket.close();
-			} catch (Exception e) {
+			}
+			catch (Exception e) 
+			{
 				// TODO: handle exception
 				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			// TODO: handle exception
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
 		}
+	}
+	
+	private String GetMachineName() 
+	{
+		String name = null;
+		Enumeration<NetworkInterface> enet = null;
+		try 
+		{
+			enet = NetworkInterface.getNetworkInterfaces();
+		} 
+		catch (SocketException e1) 
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		while (enet.hasMoreElements() && (name == null)) 
+		{
+			NetworkInterface net = enet.nextElement();
+
+			try 
+			{
+				if (net.isLoopback())	continue;
+			} 
+			catch (SocketException e) 
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Enumeration<InetAddress> eaddr = net.getInetAddresses();
+			while (eaddr.hasMoreElements()) 
+			{
+				InetAddress inet = eaddr.nextElement();
+				if (inet.getCanonicalHostName().equalsIgnoreCase(inet.getHostAddress()) == false) 
+				{
+					name = inet.getCanonicalHostName();
+					break;
+				}
+			}
+		}
+
+		return name;
 	}
 
 	//////////////////////////GETTER and SETTER METHODS///////////////////////////////

@@ -1,7 +1,11 @@
 package server;
 
-public enum ServerOperation {
-	ADD, DELETE,DEFAULT;
+public enum Operation {
+	ADD, 	//Add client
+	DELETE, //Delete client
+	SUMMARY,//Request server summary
+	HELLO,  //HELLO Messages
+	DEFAULT; //Default operation
 	@Override
 	public String toString() {
 		// only capitalize the first letter

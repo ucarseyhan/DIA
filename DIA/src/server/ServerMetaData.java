@@ -12,15 +12,17 @@ import java.util.ArrayList;
 public class ServerMetaData {
 	private int port = 4000;
 	private String serverIp = "";
+	private int capacity = 0;
 	private ArrayList<ClientMetaData> connectedClient;
 	
 	public ServerMetaData(){
-		
+		connectedClient = new ArrayList<ClientMetaData>();
 	}
 
-	public ServerMetaData(int port, String serverIp) {
+	public ServerMetaData(int port, String serverIp,int capacity) {
 		this.port = port;
 		this.serverIp = serverIp;
+		this.capacity = capacity;
 		connectedClient = new ArrayList<ClientMetaData>();
 	}
 	public boolean containClient(ClientMetaData cM){
@@ -55,6 +57,23 @@ public class ServerMetaData {
 	public void setServerIp(String serverIp) {
 		this.serverIp = serverIp;
 	}
+
+	public int getCapacity() {
+		return capacity;
+	}
+
+	public void setCapacity(int capacity) {
+		this.capacity = capacity;
+	}
+
+	public ArrayList<ClientMetaData> getConnectedClient() {
+		return connectedClient;
+	}
+
+	public void setConnectedClient(ArrayList<ClientMetaData> connectedClient) {
+		this.connectedClient = connectedClient;
+	}
+	
 	
 	
 
