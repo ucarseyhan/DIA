@@ -5,6 +5,7 @@ package server.message;
 import server.ClientMetaData;
 import server.Operation;
 import server.ServerMetaData;
+import server.Time;
 
 public interface Interactable {
 	
@@ -19,5 +20,7 @@ public interface Interactable {
 	public boolean isServer();
 	public ServerMetaData getServerMetaData();
 	public ClientMetaData getClientMetaData();
+	public Time getTime();
+	public String getConnectedServer();
 
 }

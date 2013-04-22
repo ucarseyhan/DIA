@@ -11,12 +11,16 @@ public class ClientMetaData {
 	//Declare variable
 	private int port = 0;
 	private String ipAddress = "";
+	private String connectedServerIp = "";
+	private Time lastTransaction;
 	
 	//Specified constructor
-	public ClientMetaData(int port, String ipAddress) {
+	public ClientMetaData(int port, String ipAddress,String serverIp) {
 		super();
 		this.port = port;
 		this.ipAddress = ipAddress;
+		this.connectedServerIp = serverIp;
+		lastTransaction = new Time();
 	}
 	
 	//Default constructor.
@@ -40,6 +44,24 @@ public class ClientMetaData {
 	public void setIpAddress(String ipAddress) {
 		this.ipAddress = ipAddress;
 	}
+
+	public String getConnectedServerIp() {
+		return connectedServerIp;
+	}
+
+	public void setConnectedServerIp(String connectedServerIp) {
+		this.connectedServerIp = connectedServerIp;
+	}
+
+	public Time getLastTransaction() {
+		return lastTransaction;
+	}
+
+	public void setLastTransaction(Time lastTransaction) {
+		this.lastTransaction = lastTransaction;
+	}
+	
+	
 	
 	
 

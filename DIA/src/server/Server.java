@@ -240,6 +240,7 @@ public class Server implements Observer
 	{
 		try 
 		{
+			controlListTimerExpiration();
 			 Operation op = msg.getOperation();
 			switch (op) 
 			{
@@ -270,6 +271,56 @@ public class Server implements Observer
 			System.out.println("Server.doOperationProcess()");
 		}
 		
+	}
+	/**
+	 * For each operation control the server and client lists.
+	 * If any of them goes down then remove from current server
+	 * data structures.
+	 */
+	public void controlListTimerExpiration()
+	{
+		try 
+		{
+			//Check server
+			Set<String> set = serverList.keySet();
+			Iterator<String> i = set.iterator();
+			while (i.hasNext()) 
+			{
+				Time now = new Time();
+				String sIp = (String) i.next();
+				ServerMetaData sMeta = serverList.get(sIp);
+				Time lastTransaction = sMeta.getLastTransaction();
+				//If the time difference is greater than threshold remove
+				if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
+				{
+					serverList.remove(sIp);
+				}
+				
+			}
+			
+			//Check clients
+			set = clientList.keySet();
+			i = set.iterator();
+			while (i.hasNext()) 
+			{
+				Time now = new Time();
+				String cIp = (String) i.next();
+				ClientMetaData cMeta = clientList.get(cIp);
+				Time lastTransaction = cMeta.getLastTransaction();
+				//If the time difference is greater than threshold remove
+				if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
+				{
+					clientList.remove(cIp);
+				}
+				
+			}
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.controlListTimerExpiration()");
+			e.printStackTrace();
+		}
 	}
 	/**
 	 * ADD operation is used by clients. After proposed 
@@ -372,19 +423,26 @@ public class Server implements Observer
 			 */
 			else
 			{
-				String clientIp = msg.getSenderIpAddress();
-				ClientMetaData clientMetaData = msg.getClientMetaData();
-				if(clientList.containsKey(clientIp))
+				/**
+				 * Control the client if it is connected to 
+				 * current server.
+				 */
+				String connectedServer = msg.getConnectedServer();
+				if(connectedServer.equals(serverIp))
 				{
-					clientList.remove(clientIp);
-					clientList.put(clientIp, clientMetaData);
+					String clientIp = msg.getSenderIpAddress();
+					ClientMetaData clientMetaData = msg.getClientMetaData();
+					if(clientList.containsKey(clientIp))
+					{
+						clientList.remove(clientIp);
+						clientList.put(clientIp, clientMetaData);
+					}
+					else
+					{
+						clientList.put(clientIp, clientMetaData);
+						
+					}
 				}
-				else
-				{
-					clientList.put(clientIp, clientMetaData);
-					
-				}
-				
 			}
 		} 
 		catch (Exception e) 

@@ -2,6 +2,7 @@ package server.message;
 import server.ClientMetaData;
 import server.Operation;
 import server.ServerMetaData;
+import server.Time;
 
 /**
  * This class is used for the client interaction request.When the 
@@ -47,32 +48,48 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 
 
 	@Override
-	public String getClientIp() {
+	public String getClientIp() 
+	{
 		// TODO Auto-generated method stub
 		return super.getSenderIpAddress();
 	}
 	@Override
-	public String getDestinationIp() {
+	public String getDestinationIp() 
+	{
 		// TODO Auto-generated method stub
 		return super.getReceiverIpAddress();
 	}
 	@Override
-	public Operation getOperation(){
+	public Operation getOperation()
+	{
 		return super.getOperation();
 		
 	}
 	@Override
-	public boolean isServer() {
+	public boolean isServer() 
+	{
 		// TODO Auto-generated method stub
 		return super.isServerRole();
 	}
 	@Override
-	public ServerMetaData getServerMetaData(){
+	public ServerMetaData getServerMetaData()
+	{
 		return super.getServerMetaData();
 	}
 	@Override
-	public ClientMetaData getClientMetaData(){
+	public ClientMetaData getClientMetaData()
+	{
 		return super.getClientMetaData();
+	}
+	@Override
+	public Time getTime()
+	{
+		return super.getTime();
+	}
+	@Override
+	public String getConnectedServer()
+	{
+		return super.getConnectedServer();
 	}
 
 	//=======Getter and setter method==========================

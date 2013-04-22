@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import server.ClientMetaData;
 import server.ServerMetaData;
 import server.Operation;
+import server.Time;
 
 /**
  * This class is super class of both client interaction request 
@@ -30,6 +31,7 @@ public class InteractionMessage{
 	private Hashtable<String, ServerMetaData> serverList;
 	private ServerMetaData serverMetaData;
 	private ClientMetaData clientMetaData;
+	private Time time;
 	private boolean serverRole = false;
 	//Default Constructor
 	public InteractionMessage(){
@@ -71,6 +73,14 @@ public class InteractionMessage{
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
+	}
+	/**
+	 * For client return connected client.
+	 * @return
+	 */
+	public String getConnectedServer()
+	{
+		return clientMetaData.getConnectedServerIp();
 	}
 	
 	
@@ -152,6 +162,12 @@ public class InteractionMessage{
 	}
 	public void setClientMetaData(ClientMetaData clientMetaData) {
 		this.clientMetaData = clientMetaData;
+	}
+	public Time getTime() {
+		return time;
+	}
+	public void setTime(Time time) {
+		this.time = time;
 	}
 	
 	

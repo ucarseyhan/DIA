@@ -2,6 +2,7 @@ package server.message;
 import server.ClientMetaData;
 import server.Operation;
 import server.ServerMetaData;
+import server.Time;
 
 
 /**
@@ -26,7 +27,8 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 	}
 	
 	public InteractionResponse(String senderIpAddress, int senderPort,
-			String receiverIpAddress, int receiverPort,String message) {
+			String receiverIpAddress, int receiverPort,String message) 
+	{
 		super(senderIpAddress, senderPort, receiverIpAddress, receiverPort);
 		this.reply = message;
 		// TODO Auto-generated constructor stub
@@ -70,6 +72,16 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 	@Override
 	public ClientMetaData getClientMetaData(){
 		return super.getClientMetaData();
+	}
+	@Override
+	public Time getTime()
+	{
+		return super.getTime();
+	}
+	@Override
+	public String getConnectedServer()
+	{
+		return super.getConnectedServer();
 	}
 	//================Getter and Setter methods======================
 	public String getReply() {

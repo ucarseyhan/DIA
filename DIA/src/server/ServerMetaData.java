@@ -13,10 +13,12 @@ public class ServerMetaData {
 	private int port = 4000;
 	private String serverIp = "";
 	private int capacity = 0;
+	private Time lastTransaction;
 	private ArrayList<ClientMetaData> connectedClient;
 	
 	public ServerMetaData(){
 		connectedClient = new ArrayList<ClientMetaData>();
+		lastTransaction = new Time();
 	}
 
 	public ServerMetaData(int port, String serverIp,int capacity) {
@@ -24,6 +26,7 @@ public class ServerMetaData {
 		this.serverIp = serverIp;
 		this.capacity = capacity;
 		connectedClient = new ArrayList<ClientMetaData>();
+		lastTransaction = new Time();
 	}
 	public boolean containClient(ClientMetaData cM){
 		try {
@@ -73,6 +76,15 @@ public class ServerMetaData {
 	public void setConnectedClient(ArrayList<ClientMetaData> connectedClient) {
 		this.connectedClient = connectedClient;
 	}
+
+	public Time getLastTransaction() {
+		return lastTransaction;
+	}
+
+	public void setLastTransaction(Time lastTransaction) {
+		this.lastTransaction = lastTransaction;
+	}
+	
 	
 	
 	
