@@ -245,6 +245,7 @@ public class Server implements Observer
 			{
 			//Add client into client list
 			case ADD:
+				responseAddOperation(msg);
 				break;
 			//Delete client	
 			case DELETE:
