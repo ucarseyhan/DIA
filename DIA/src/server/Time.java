@@ -116,22 +116,22 @@ public class Time
 		this.startTime = startTime;
 	}
 	
-	public static void main(String[] args)
-	{
-		Time t = new Time();
-		System.out.println(t.toString());
-		try {
-			Thread.sleep(5);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		Time t1 = new Time();
-		System.out.println(t1.toString());
-		System.out.println(t.dayDifference(t1));
-		
-	}
+//	public static void main(String[] args)
+//	{
+//		Time t = new Time();
+//		System.out.println(t.toString());
+//		try {
+//			Thread.sleep(5);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		Time t1 = new Time();
+//		System.out.println(t1.toString());
+//		System.out.println(t.dayDifference(t1));
+//		
+//	}
 	
 	
 	

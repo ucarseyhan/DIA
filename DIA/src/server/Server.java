@@ -53,6 +53,8 @@ public class Server implements Observer
 	private Random rand;
 	//Interaction message
 	private InteractionMessage periodicServerMessage;
+	//Waiting list of server.
+	private WaitingList waitingList;
 
 	/**
 	 * Create the Server object with specified ip and id.
@@ -76,6 +78,8 @@ public class Server implements Observer
 		//Create the client and server list
 		clientList = new Hashtable<String,ClientMetaData>();
 		serverList = new Hashtable<String,ServerMetaData>();
+		//Create the server list.
+		waitingList = new WaitingList();
 		//Start the server helper
 		new Thread(serverHelper).start();
 		/**
@@ -240,8 +244,8 @@ public class Server implements Observer
 	{
 		try 
 		{
-			controlListTimerExpiration();
-			 Operation op = msg.getOperation();
+			controlListTimerExpiration(); 
+			Operation op = msg.getOperation();
 			switch (op) 
 			{
 			//Add client into client list
@@ -259,6 +263,8 @@ public class Server implements Observer
 			//Return server summary
 			case SUMMARY:
 				responseSummaryOperation(msg);
+				break;
+			case WAITINGLIST:
 				break;
 
 			default:

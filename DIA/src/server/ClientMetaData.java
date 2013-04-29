@@ -7,12 +7,13 @@ package server;
  * @author ucar
  * Windows
  */
-public class ClientMetaData {
+public class ClientMetaData implements Comparable<ClientMetaData> {
 	//Declare variable
 	private int port = 0;
 	private String ipAddress = "";
 	private String connectedServerIp = "";
 	private Time lastTransaction;
+	private long latencyToQoSServer;
 	
 	//Specified constructor
 	public ClientMetaData(int port, String ipAddress,String serverIp) {
@@ -27,8 +28,21 @@ public class ClientMetaData {
 	public ClientMetaData(){
 		
 	}
+	
+	@Override
+	/**
+	 * Compare the latency data and return if the
+	 * current latency is bigger than compared one. 
+	 */
+	public int compareTo(ClientMetaData cmd) {
+		// TODO Auto-generated method stub
+		long elapsedTime  = cmd.getLatencyToQoSServer();
+		if(latencyToQoSServer > elapsedTime) return 1;
+		return 0;
+	}
+		
+	
 	//========Getter and Setter Methods
-
 	public int getPort() {
 		return port;
 	}
@@ -60,6 +74,17 @@ public class ClientMetaData {
 	public void setLastTransaction(Time lastTransaction) {
 		this.lastTransaction = lastTransaction;
 	}
+
+	public long getLatencyToQoSServer() {
+		return latencyToQoSServer;
+	}
+
+	public void setLatencyToQoSServer(long latencyToQoSServer) {
+		this.latencyToQoSServer = latencyToQoSServer;
+	}
+
+
+	
 	
 	
 	
