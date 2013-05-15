@@ -15,6 +15,7 @@ public class ClientHelper implements Runnable {
 	 * coming message to message box for the purpose of the node usage.
 	 */
 	/**
+	 * 
 	 * Declare the variable.
 	 */
 	private int port = 4000;
