@@ -10,10 +10,14 @@ import client.message.MessageBox;
 
 public class ClientHelper implements Runnable {
 	/**
+	 * 
 	 * NodeHelper class is used for listening the upcoming connection. It is
 	 * started as a thread in the node class. Listen the port and push the
-	 * coming message to message box for the purpose of the node usage.
+	 * coming  message to message box for the purpose of the node usage.
 	 */
+	
+	
+	
 	/**
 	 * 
 	 * Declare the variable.

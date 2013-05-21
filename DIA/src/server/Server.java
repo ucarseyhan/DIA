@@ -221,7 +221,7 @@ public class Server implements Observer
 		try {
 			if(o instanceof MessageBox){
 				MessageBox mBox = (MessageBox)o;
-				this.messageBox = mBox;
+				this.messageBox = mBox;	
 				/**
 				 * Message is in the stack.So get it out and do
 				 * the process.

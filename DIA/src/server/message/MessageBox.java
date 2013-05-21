@@ -13,9 +13,9 @@ public class MessageBox extends Observable {
 	 */
 	//Declare variables.
 	private LinkedBlockingQueue<Interactable> messageBox;
-	
 	//Constructors.
-	public MessageBox(){
+	public MessageBox()
+	{
 		messageBox = new LinkedBlockingQueue<Interactable>(1);
 	}
 	public void addMessage(Interactable m){
