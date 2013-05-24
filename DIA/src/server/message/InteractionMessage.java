@@ -1,8 +1,10 @@
 package server.message;
 
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
-import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
+
 import server.ClientMetaData;
 import server.ServerMetaData;
 import server.Operation;
@@ -18,25 +20,38 @@ import server.Time;
  * @author ucar
  *
  */
-public class InteractionMessage{
+public class InteractionMessage implements Interactable,Serializable
+{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	//Declare variables
 	private String senderIpAddress     = ""; //Sender IP address
 	private int senderPort = 0;				 //Sender port
 	private int senderId = 0;
 	private String receiverIpAddress   = ""; //Receiver IP address
 	private int receiverPort = 0;			 //Receiver port
+	
+	private String connecToServerIp = "";
+	private boolean addWaitingList = false;
+	private String clientIP = "";
+	
 	private int receiverId = 0; 
 	private Operation operation;
-	private Hashtable<String, ClientMetaData> clientList;
-	private Hashtable<String, ServerMetaData> serverList;
+	private ConcurrentHashMap<String, ClientMetaData> clientList;
+	private ConcurrentHashMap<String, ServerMetaData> serverList;
 	private ServerMetaData serverMetaData;
 	private ClientMetaData clientMetaData;
 	private Time time;
 	private boolean serverRole = false;
+	
 	//Default Constructor
-	public InteractionMessage(){
+	public InteractionMessage()
+	{
 		
 	}
+	
 	//Specified constructor
 	public InteractionMessage(String senderIpAddress, int senderPort,
 			String receiverIpAddress, int receiverPort)
@@ -48,7 +63,7 @@ public class InteractionMessage{
 	}
 	
 	public InteractionMessage(String senderIpAddress, int senderPort,
-			Operation operation,Hashtable<String, ClientMetaData> clientList,
+			Operation operation,ConcurrentHashMap<String, ClientMetaData> clientList,
 			ServerMetaData serverMetaData) 
 	{
 		this.senderIpAddress = senderIpAddress;
@@ -118,10 +133,10 @@ public class InteractionMessage{
 	public void setOperation(Operation operation) {
 		this.operation = operation;
 	}
-	public Hashtable<String, ClientMetaData> getClientList() {
+	public ConcurrentHashMap<String, ClientMetaData> getClientList() {
 		return clientList;
 	}
-	public void setClientList(Hashtable<String, ClientMetaData> clientList) {
+	public void setClientList(ConcurrentHashMap<String, ClientMetaData> clientList) {
 		this.clientList = clientList;
 	}
 	public ServerMetaData getServerMetaData() {
@@ -148,10 +163,10 @@ public class InteractionMessage{
 	public void setServerRole(boolean serverRole) {
 		this.serverRole = serverRole;
 	}
-	public Hashtable<String, ServerMetaData> getServerList() {
+	public ConcurrentHashMap<String, ServerMetaData> getServerList() {
 		return serverList;
 	}
-	public void setServerList(Hashtable<String, ServerMetaData> serverList) {
+	public void setServerList(ConcurrentHashMap<String, ServerMetaData> serverList) {
 		this.serverList = serverList;
 	}
 	public void setServerMetaData(ServerMetaData serverMetaData) {
@@ -169,6 +184,46 @@ public class InteractionMessage{
 	public void setTime(Time time) {
 		this.time = time;
 	}
+	public String getConnecToServerIp() {
+		return connecToServerIp;
+	}
+	public void setConnecToServerIp(String connecToServerIp) {
+		this.connecToServerIp = connecToServerIp;
+	}
+	public boolean isAddWaitingList() {
+		return addWaitingList;
+	}
+	public void setAddWaitingList(boolean addWaitingList) {
+		this.addWaitingList = addWaitingList;
+	}
+	@Override
+	public String getClientIp() {
+		return clientIP;
+	}
+
+	public void setClientIP(String clientIP) {
+		this.clientIP = clientIP;
+	}
+
+	@Override
+	public void doOperation(Interactable message, boolean myClient,
+			String assignedServerIp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public String getDestinationIp() {
+		// TODO Auto-generated method stub
+		return receiverIpAddress;
+	}
+
+	@Override
+	public boolean isServer() {
+		// TODO Auto-generated method stub
+		return serverRole;
+	}
+	
+
 	
 	
 	

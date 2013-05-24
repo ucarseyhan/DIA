@@ -18,6 +18,7 @@ public interface Interactable {
 	public int getReceiverPort();
 	public Operation getOperation();
 	public boolean isServer();
+	public boolean isAddWaitingList();
 	public ServerMetaData getServerMetaData();
 	public ClientMetaData getClientMetaData();
 	public Time getTime();

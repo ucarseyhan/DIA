@@ -8,16 +8,8 @@ import java.net.Socket;
 import client.message.Message;
 import client.message.MessageBox;
 
-public class ClientHelper implements Runnable {
-	/**
-	 * 
-	 * NodeHelper class is used for listening the upcoming connection. It is
-	 * started as a thread in the node class. Listen the port and push the
-	 * coming  message to message box for the purpose of the node usage.
-	 */
-	
-	
-	
+public class ClientHelper implements Runnable 
+{
 	/**
 	 * 
 	 * Declare the variable.
@@ -55,8 +47,6 @@ public class ClientHelper implements Runnable {
 
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
-			// e.printStackTrace();
 		}
 	}
 

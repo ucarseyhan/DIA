@@ -1,5 +1,6 @@
 package server;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -23,6 +24,7 @@ public class ServerHelper implements Runnable {
 	//Message box for coming packets
 	private MessageBox messageBox;
 	private ObjectInputStream inputFromClient;
+	private ServerSocket serverSocket = null;
 	/**
 	 * Default constructor.
 	 */
@@ -33,26 +35,37 @@ public class ServerHelper implements Runnable {
 	 * Specified constructor.
 	 * @param port
 	 */
-	public ServerHelper(int port){
+	public ServerHelper(int port,MessageBox m){
 		this.port = port;
+		messageBox = m;
+		try 
+		{
+			serverSocket = new ServerSocket(this.port);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
 	}
 	/**
 	 * start() method is executing when the server helper class is 
 	 * executing. When central server wants to communicate with the server
 	 * the server is listening via usage of start().
 	 */
-	public void start(){
-		try {
-			ServerSocket serverSocket = new ServerSocket(this.port);
-			System.out.println("Server serverhelper serverport is started:"+port);
-			while (true) {
+	public void start()
+	{
+		try 
+		{
+			while (true) 
+			{
 				Socket clientSocket =  serverSocket.accept();
 				inputFromClient = new ObjectInputStream(clientSocket.getInputStream());	
 				Interactable m = (Interactable)inputFromClient.readObject();
 				messageBox.addMessage(m);
 			}
-		} catch (Exception e) {
-			// TODO: handle exception
+		} 
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 		}
 	}

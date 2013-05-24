@@ -13,11 +13,18 @@ import server.Time;
  * @author ucar
  *
  */
-public class InteractionResponse extends InteractionMessage implements Interactable {
+public class InteractionResponse extends InteractionMessage implements Interactable 
+{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	//Declare variable.
 	private String reply = "";
+	private boolean isQoSAssignment = false;
 	//Default constructor.
-	public InteractionResponse(){
+	public InteractionResponse()
+	{
 		super();
 	}
 	//Specified constructor.
@@ -83,13 +90,29 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 	{
 		return super.getConnectedServer();
 	}
+	@Override
+	public boolean isAddWaitingList()
+	{
+		return super.isAddWaitingList();
+	}
 	//================Getter and Setter methods======================
-	public String getReply() {
+	public String getReply() 
+	{
 		return reply;
 	}
-	public void setReply(String reply) {
+	public void setReply(String reply) 
+	{
 		this.reply = reply;
 	}
+	public boolean isQoSAssignment() 
+	{
+		return isQoSAssignment;
+	}
+	public void setQoSAssignment(boolean isQoSAssignment) 
+	{
+		this.isQoSAssignment = isQoSAssignment;
+	}
+	
 
 
 	

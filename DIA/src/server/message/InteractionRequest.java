@@ -14,7 +14,12 @@ import server.Time;
  * @author ucar
  *
  */
-public class InteractionRequest extends InteractionMessage implements Interactable{
+public class InteractionRequest extends InteractionMessage implements Interactable
+{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	//Declare variable
 	private String message = "";
 	//Default Constructor
@@ -91,6 +96,12 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	{
 		return super.getConnectedServer();
 	}
+	@Override
+	public boolean isAddWaitingList()
+	{
+		return super.isAddWaitingList();
+	}
+
 
 	//=======Getter and setter method==========================
 	public String getMessage() {

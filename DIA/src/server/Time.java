@@ -1,5 +1,6 @@
 package server;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -17,8 +18,12 @@ import java.util.Calendar;
  * @author seyhan
  *
  */
-public class Time 
+public class Time implements Serializable
 {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private Calendar calendar;
 	private String dateFormat = "H:mm:ss:SSS";
 	private SimpleDateFormat sdf;

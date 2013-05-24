@@ -1,5 +1,6 @@
 package server;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -9,8 +10,13 @@ import java.util.ArrayList;
  * @author seyhan
  *
  */
-public class ServerMetaData {
-	private int port = 4000;
+public class ServerMetaData implements Serializable 
+{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private int port = Constants.PORT;
 	private String serverIp = "";
 	private int capacity = 0;
 	private Time lastTransaction;
