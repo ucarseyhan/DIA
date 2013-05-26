@@ -1,8 +1,4 @@
-package server.message;
-import server.ClientMetaData;
-import server.Operation;
-import server.ServerMetaData;
-import server.Time;
+package messages;
 
 /**
  * This class is used for the client interaction request.When the 
@@ -28,6 +24,15 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 		super();
 	}
 
+	public InteractionRequest(String cIP,int cPort,String assignedIP,String message) 
+	{
+
+		super();
+		super.setReceiverIpAddress(assignedIP);
+		super.setSenderIpAddress(cIP);
+		this.message = message;
+
+	}
 	@Override
 	public String getClientIp() 
 	{
@@ -80,18 +85,7 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	public String getMessage() {
 		return message;
 	}
-	public InteractionRequest(String message, 
-							  int targetClientId,
-							  String targetClientIp,
-							  String myIp) 
-	{
-		
-		super();
-		super.setReceiverIpAddress(targetClientIp);
-		super.setSenderIpAddress(myIp);
-		this.message = message;
-		
-	}
+
 	public void setMessage(String message) 
 	{
 		this.message = message;

@@ -1,10 +1,11 @@
-package client.message;
+package messages;
 
 import java.util.Observable;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Stack;
 
 
-public class MessageBox extends Observable {
+public class MessageBox extends Observable 
+{
 	/**
 	 * MessageBox class is a observable Message that each client has.
 	 * When the listening port receives a message it push to this 
@@ -12,12 +13,11 @@ public class MessageBox extends Observable {
 	 * message the client decode it and process by using its flag.
 	 */
 	//Declare variables.
-	private LinkedBlockingQueue<Interactable> messageBox;
-	
+	private Stack<Interactable> messageBox;
 	//Constructors.
 	public MessageBox()
 	{
-		messageBox = new LinkedBlockingQueue<Interactable>(1);
+		messageBox = new Stack<Interactable>();
 	}
 	public void addMessage(Interactable m)
 	{
@@ -28,14 +28,14 @@ public class MessageBox extends Observable {
 		} 
 		catch (Exception e) 
 		{
+			// TODO: handle exception
 			e.printStackTrace();
 		}
 
 	}
-	
 	public Interactable pop()
 	{
-		return  messageBox.poll();
+		return  messageBox.pop();
 	}
 	public Interactable peek()
 	{

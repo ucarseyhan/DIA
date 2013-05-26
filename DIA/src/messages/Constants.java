@@ -1,4 +1,4 @@
-package client;
+package messages;
 
 public class Constants 
 {

@@ -18,11 +18,18 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import server.message.InitialMessage;
-import server.message.Interactable;
-import server.message.InteractionMessage;
-import server.message.InteractionResponse;
-import server.message.MessageBox;
+
+import messages.ClientMetaData;
+import messages.Constants;
+import messages.InitialMessage;
+import messages.Interactable;
+import messages.InteractionMessage;
+import messages.InteractionResponse;
+import messages.Logger;
+import messages.MessageBox;
+import messages.Operation;
+import messages.ServerMetaData;
+import messages.Time;
 /**
  * Server class is sued for creating the server object in simulation.
  * It has an internal thread for listening the central server service.
@@ -357,7 +364,9 @@ public class Server implements Observer
 				 */
 				if(msg instanceof InitialMessage)
 				{
+					
 					InitialMessage init = (InitialMessage)(msg);
+					Logger.print("Server get Initial Message from:"+init.getIp()+" End Result:"+init.isEndResult());
 					/**
 					 * If it is end result then save the client information.
 					 */

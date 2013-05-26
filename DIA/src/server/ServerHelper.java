@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import server.message.Interactable;
-import server.message.MessageBox;
+
+import messages.Interactable;
+import messages.MessageBox;
 /**
  * Server helper class is used for the purpose each server 
  * is listening the central server. When the central server
@@ -35,7 +36,8 @@ public class ServerHelper implements Runnable {
 	 * Specified constructor.
 	 * @param port
 	 */
-	public ServerHelper(int port,MessageBox m){
+	public ServerHelper(int port,MessageBox m)
+	{
 		this.port = port;
 		messageBox = m;
 		try 
@@ -75,16 +77,20 @@ public class ServerHelper implements Runnable {
 	 * message.
 	 */
 	@Override
-	public void run() {
-		while (true) {
+	public void run() 
+	{
+		while (true) 
+		{
 			start();
 		}
 	}
 	//////////////////GETTER and SETTER METHODS//////////////////////
-	public int getPort() {
+	public int getPort() 
+	{
 		return port;
 	}
-	public void setPort(int port) {
+	public void setPort(int port) 
+	{
 		this.port = port;
 	}
 }

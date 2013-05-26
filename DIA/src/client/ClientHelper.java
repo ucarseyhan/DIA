@@ -5,8 +5,10 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import client.message.Interactable;
-import client.message.MessageBox;
+import messages.Constants;
+import messages.Interactable;
+import messages.MessageBox;
+
 
 public class ClientHelper implements Runnable 
 {

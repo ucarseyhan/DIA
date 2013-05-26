@@ -1,14 +1,10 @@
-package server.message;
+package messages;
 
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
-import server.ClientMetaData;
-import server.ServerMetaData;
-import server.Operation;
-import server.Time;
 
 /**
  * This class is super class of both client interaction request 
@@ -77,6 +73,20 @@ public class InteractionMessage implements Interactable,Serializable
 		this.serverMetaData = serverMetaData;
 		this.time = new Time();
 	}
+	
+	public InteractionMessage(String senderIpAddress, int senderPort,
+			Operation operation,ClientMetaData clientMetaData) 
+	{
+		this.senderIpAddress = senderIpAddress;
+		this.senderPort = senderPort;
+		this.operation = operation;
+		this.clientMetaData = clientMetaData;
+		this.time = new Time();
+	}
+	
+//	periodicClientMessage = new InteractionMessage(clientIPAddress,clientPort,
+//			Operation.DEFAULT,
+//			myClientData);
 	
 	public void forward(String ip,int port,Interactable m)
 	{

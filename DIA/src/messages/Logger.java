@@ -1,4 +1,4 @@
-package client;
+package messages;
 
 import java.io.BufferedWriter;
 import java.io.File;

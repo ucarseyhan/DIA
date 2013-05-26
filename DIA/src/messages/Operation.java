@@ -1,14 +1,18 @@
-package client;
+package messages;
 
 import java.util.Random;
 
 
 public enum Operation {
 	JOIN, 			//Join client
+	ADD,			//Add client
 	DELETE, 		//Delete client
+	SUMMARY,		//Request server summary
 	HELLO,  		//HELLO Messages
 	DEFAULT, 		//Default operation
-	INTERACT;       //Interact with another client
+	WAITINGLIST,	//Add into waiting list
+	INTERACT;       //Interaction request from client
+
 	@Override
 	public String toString() 
 	{
@@ -19,7 +23,7 @@ public enum Operation {
 	
     public static final RandomEnum<Operation> r = new RandomEnum<Operation>(Operation.class);
     @SuppressWarnings("rawtypes")
-	static class RandomEnum<E extends Enum> 
+	public	static class RandomEnum<E extends Enum> 
     {
 
         private static final Random RND = new Random();
@@ -33,4 +37,5 @@ public enum Operation {
             return values[RND.nextInt(values.length)];
         }
     }
+
 }

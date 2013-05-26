@@ -1,13 +1,9 @@
-package server.message;
+package messages;
 
 import java.io.Serializable;
 import java.util.Hashtable;
 
-import server.ClientMetaData;
-import server.Constants;
-import server.Operation;
-import server.ServerMetaData;
-import server.Time;
+
 
 public class InitialMessage implements Interactable,Serializable
 {
@@ -20,6 +16,7 @@ public class InitialMessage implements Interactable,Serializable
 	private boolean endResult = false;
 	private boolean fromServer = false;
 	private Hashtable<String, Long> serverDelay;
+	private Time time;
 	
 	public InitialMessage()
 	{
@@ -32,6 +29,7 @@ public class InitialMessage implements Interactable,Serializable
 		this.serverIp = sIp;
 		this.endResult = false;
 		serverDelay = new Hashtable<String, Long>();
+		this.time = new Time();
 	}
 
 	public String getIp() {
@@ -139,7 +137,7 @@ public class InitialMessage implements Interactable,Serializable
 	@Override
 	public Time getTime() {
 		// TODO Auto-generated method stub
-		return null;
+		return time;
 	}
 
 	@Override

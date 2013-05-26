@@ -1,10 +1,4 @@
-package client.message;
-
-import client.ClientMetaData;
-import client.Operation;
-import client.ServerMetaData;
-import client.Time;
-
+package messages;
 
 /**
  * This class is used for sending the server response to user.In
@@ -29,7 +23,8 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 		super();
 	}
 	//Specified constructor.
-	public InteractionResponse(String reply) {
+	public InteractionResponse(String reply) 
+	{
 		super();
 		this.reply = reply;
 	}
@@ -41,48 +36,35 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 		this.reply = message;
 		// TODO Auto-generated constructor stub
 	}
-	public String getInteractedClientIp()
-	{
-		return super.getInteractedClientIP();
-	}
 	@Override
-	public String getClientIp() {
-		// TODO Auto-generated method stub
+	public String getClientIp() 
+	{
 		return super.getSenderIpAddress();
 	}
 	@Override
-	public String getDestinationIp() {
-		// TODO Auto-generated method stub
+	public String getDestinationIp() 
+	{
 		return super.getReceiverIpAddress();
 	}
 	@Override
-	public Operation getOperation(){
+	public Operation getOperation()
+	{
 		return super.getOperation();
 		
 	}
 	@Override
-	public boolean isServer() {
-		// TODO Auto-generated method stub
+	public boolean isServer() 
+	{
 		return super.isServerRole();
 	}
 	@Override
-	public void doOperation(Interactable message, boolean myClient,String assignedServerIp) 
+	public ServerMetaData getServerMetaData()
 	{
-		try {
-			String ip = getReceiverIpAddress();
-			int port = getReceiverPort();
-			forward(ip, port, message);
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}	
-	}
-	@Override
-	public ServerMetaData getServerMetaData(){
 		return super.getServerMetaData();
 	}
 	@Override
-	public ClientMetaData getClientMetaData(){
+	public ClientMetaData getClientMetaData()
+	{
 		return super.getClientMetaData();
 	}
 	@Override
@@ -99,6 +81,10 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 	public boolean isAddWaitingList()
 	{
 		return super.isAddWaitingList();
+	}
+	public void setinteractedClient(String ip)
+	{
+		super.setInteractedClientIP(ip);
 	}
 	//================Getter and Setter methods======================
 	public String getReply() 

@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -22,12 +21,19 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import client.message.InitialMessage;
-import client.message.Interactable;
-import client.message.InteractionMessage;
-import client.message.InteractionRequest;
-import client.message.InteractionResponse;
-import client.message.MessageBox;
+import messages.ClientMetaData;
+import messages.Constants;
+import messages.InitialMessage;
+import messages.Interactable;
+import messages.InteractionMessage;
+import messages.InteractionRequest;
+import messages.InteractionResponse;
+import messages.Logger;
+import messages.MessageBox;
+import messages.Operation;
+import messages.ServerMetaData;
+import messages.Time;
+
 
 /**
  * Client class is used for representing the 
@@ -49,13 +55,15 @@ public class Client implements Observer
 	private TimerTask clientBehaviourTask;
 	private MessageBox messageBox;
 	private ClientHelper clientHelper;
-	private String clientIPAddress = "";
+	private String clientIPAddress = " ";
 	private int clientPort = Constants.PORT;
 	private int totalClient = 0;
 	private int totalInteraction = 0;
 	private int max = 0; 
 	private int min = 0;
-	private String assignedServerIpAdress = "";
+	private int latencyReceive = 0;
+	private boolean joinRequestSend = false;
+	private String assignedServerIpAdress = " ";
 	//Interaction message
 	private InteractionMessage periodicClientMessage;
 	private ClientMetaData myClientData;
@@ -80,21 +88,20 @@ public class Client implements Observer
 		serverDelay = new Hashtable<String, Long>();
 		messageBox = new MessageBox();
 		messageBox.addObserver(this);
-		Logger.print("Data Structures created");
+		/*
+		 * Start to listen
+		 */
+		clientHelper = new ClientHelper(messageBox);
+		new Thread(clientHelper).start();
 		/*
 		 * Read text files and fill the servers and 
 		 * existing clients
 		 */
 		readServerFiles();
-		Logger.print("Read Server files");
 		readClientFiles();
-		Logger.print("Read client files");
 		readParameterFiles();
-		Logger.print("Read Parameter file");
 		computeInitialLatency();
-		Logger.print("Compute Initial Latency");
 		informInitialLatency();
-		Logger.print("Inform Initial Latency ");
 		//Create my  client data 
 		myClientData = new ClientMetaData(clientPort, clientIPAddress,assignedServerIpAdress);
 		myClientData.setClientServerLatency(serverDelay);
@@ -103,10 +110,9 @@ public class Client implements Observer
 				Operation.DEFAULT,
 				myClientData);
 		
-		clientHelper = new ClientHelper(messageBox);
-		new Thread(clientHelper).start();
+
 		timer  = new Timer();
-		sendJoinRequest();
+		//sendJoinRequest();
 		initialTimerTask();
 		initialClientBehaviourTask();
 
@@ -136,13 +142,14 @@ public class Client implements Observer
 	            {
 	                if(!strLine.equalsIgnoreCase(""))
 	                {
-	                    String ip = strLine;
-						// Initial connected client is empty
-						ServerMetaData serverMetaData = new ServerMetaData();
-						serverMetaData.setServerIp(ip);
-						serverList.put(ip, serverMetaData);
-
-	                    
+	                	String ip = strLine;
+	                	if(!serverList.containsKey(ip))
+	                	{
+							// Initial connected client is empty
+							ServerMetaData serverMetaData = new ServerMetaData();
+							serverMetaData.setServerIp(ip);
+							serverList.put(ip, serverMetaData);
+	                	}
 	                }
 	            }
 	            in.close();
@@ -359,26 +366,12 @@ public class Client implements Observer
 		{
 			for(String sIP : serverList.keySet())
 			{
-				long start = System.currentTimeMillis();
 				Socket socket = new Socket(sIP,Constants.PORT);
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-				ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
 				toServer.writeObject(initialMessage);
 				toServer.flush();
-				//Wait from server
-				InitialMessage initialFromServer = (InitialMessage) (fromServer.readObject());
-				if(initialFromServer.isFromServer())
-				{
-					if(initialFromServer.getServerIp().equalsIgnoreCase(sIP))
-					{
-						long delay = System.currentTimeMillis() - start;
-						serverDelay.put(sIP, delay);
-						String message = "Server:"+sIP+" Latency:"+delay;
-						Logger.print(message);
-						
-					}
-				}
+				Logger.print("ComputeInitialLatency Server:"+sIP+" Client:"+clientIPAddress);
 			}
 			
 		} 
@@ -399,13 +392,11 @@ public class Client implements Observer
 		{
 			for(String sIP : serverList.keySet())
 			{
-				Socket socket = new Socket(getAssignedServerIpAdress(),Constants.PORT);
+				Socket socket = new Socket(sIP,Constants.PORT);
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
 				initialMessage.setServerDelay(serverDelay);
 				initialMessage.setEndResult(true);
-				String message = "Client:"+clientIPAddress+" Inform Initial Latency:"+sIP;
-				Logger.print(message);
 				toServer.writeObject(initialMessage);
 				toServer.flush();
 			}		
@@ -431,12 +422,8 @@ public class Client implements Observer
 			String s = (String) randomServer;
 			Socket socket = new Socket(s,Constants.PORT);
 			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-			ObjectInputStream  fromServer = new ObjectInputStream(socket.getInputStream());
 			toServer.writeObject(intMessage);
 			toServer.flush();
-			
-			InteractionResponse intResponse = (InteractionResponse)(fromServer.readObject());
-			assignedServerIpAdress = intResponse.getConnectedServer();
 		} 
 		catch (Exception e) 
 		{
@@ -458,6 +445,14 @@ public class Client implements Observer
 				@Override
 				public void run() 
 				{
+					if(assignedServerIpAdress.equalsIgnoreCase(" "))
+					{
+						if(latencyReceive == totalClient && !joinRequestSend)
+						{
+							sendJoinRequest();
+							joinRequestSend = true;
+						}
+					}
 					sendPeriodicHello();
 				}
 			};
@@ -540,7 +535,26 @@ public class Client implements Observer
 				 * the process.
 				 */
 				Interactable msg = messageBox.pop();
-				doOperationProcess(msg);
+				if(msg instanceof InitialMessage)
+				{
+					InitialMessage initialFromServer = (InitialMessage) (msg);
+					if(initialFromServer.isFromServer())
+					{
+						if(serverList.containsKey(initialFromServer.getServerIp()))
+						{
+							long delay = new Time().timeDifference(initialFromServer.getTime());
+							serverDelay.put(initialFromServer.getServerIp(), delay);
+							String message = "Server:"+initialFromServer.getServerIp()+" Latency:"+delay;
+							Logger.print(message);
+							latencyReceive++;
+						}
+					}
+				}
+				else
+				{
+					doOperationProcess(msg);
+				}
+
 			}
 			
 		} catch (Exception e) {
@@ -561,6 +575,7 @@ public class Client implements Observer
 		{
 			controlListTimerExpiration();
 			Operation op = msg.getOperation();
+			Logger.print("Current Operation:"+op);
 			String message = "";
 			switch (op) 
 			{
@@ -575,15 +590,17 @@ public class Client implements Observer
 				responseInteractOperation(msg);
 				Logger.print(message);
 				break;
-
-			default:
-				System.out.println("NULL OPERATION");
+			case JOIN:
+				message = "JOIN response from "+msg.getSenderIpAddress();
+				responseJoinOperation(msg);
+				Logger.print(message);
 				break;
 			}
 		} 
 		catch (Exception e) 
 		{
-			System.out.println("Server.doOperationProcess()");
+			System.out.println("Client.doOperationProcess()");
+			e.printStackTrace();
 		}
 		
 	}
@@ -670,6 +687,27 @@ public class Client implements Observer
 			e.printStackTrace();
 		}
 	}
+	//==============================================================================
+	public void responseJoinOperation(Interactable msg)
+	{
+		try 
+		{
+			String cIP = msg.getReceiverIpAddress();
+			if(cIP.equalsIgnoreCase(clientIPAddress))
+			{
+				
+				InteractionResponse intResponse = (InteractionResponse)(msg);
+				assignedServerIpAdress = intResponse.getConnectedServer();
+			}
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	
 	//===============================================================================
 	/**
 	 * This method is evaluated by client and for each evaluation 
@@ -721,7 +759,7 @@ public class Client implements Observer
 				totalInteraction++;
 				InteractionRequest intRequest = new InteractionRequest(
 						clientIPAddress, clientPort, assignedServerIpAdress,
-						clientPort, message);
+						message);
 				intRequest.setInteractedClientIP((String)randomClient);
 				intRequest.setSequence(totalInteraction);
 				connectToServer(intRequest);
@@ -770,9 +808,10 @@ public class Client implements Observer
 				/*
 				 * Start initial process again.
 				 */
+				latencyReceive = 0;
+				joinRequestSend = false;
 				computeInitialLatency();
 				informInitialLatency();
-				sendJoinRequest();
 				initialTimerTask();
 				initialClientBehaviourTask();
 			}

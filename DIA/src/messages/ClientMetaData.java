@@ -1,4 +1,4 @@
-package client;
+package messages;
 
 import java.io.Serializable;
 import java.util.Hashtable;

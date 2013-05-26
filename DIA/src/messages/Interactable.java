@@ -1,12 +1,4 @@
-package server.message;
-
-
-
-import server.ClientMetaData;
-import server.Operation;
-import server.ServerMetaData;
-import server.Time;
-
+package messages;
 public interface Interactable 
 {
 	public String getClientIp();

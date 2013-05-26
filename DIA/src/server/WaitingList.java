@@ -1,12 +1,15 @@
 package server;
 
 import java.util.LinkedList;
+
+import messages.ClientMetaData;
 /**
  * 
  * @author seyhan
  *
  */
-public class WaitingList extends LinkedList<ClientMetaData> {
+public class WaitingList extends LinkedList<ClientMetaData> 
+{
 
 	/**
 	 * 
