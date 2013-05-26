@@ -67,26 +67,34 @@ public class Client implements Observer
 		/*
 		 * Clean the results file
 		 */
+		Logger.print("Client start");
 		File f = new File(Constants.RESULTFILE);
 		if(f.exists())
 		{
 			f.delete();
 		}
+		
 		//Create necessary data structure
 		clientList = new ConcurrentHashMap<String, ClientMetaData>();
 		serverList = new ConcurrentHashMap<String, ServerMetaData>();
 		serverDelay = new Hashtable<String, Long>();
 		messageBox = new MessageBox();
 		messageBox.addObserver(this);
+		Logger.print("Data Structures created");
 		/*
 		 * Read text files and fill the servers and 
 		 * existing clients
 		 */
 		readServerFiles();
+		Logger.print("Read Server files");
 		readClientFiles();
+		Logger.print("Read client files");
 		readParameterFiles();
+		Logger.print("Read Parameter file");
 		computeInitialLatency();
+		Logger.print("Compute Initial Latency");
 		informInitialLatency();
+		Logger.print("Inform Initial Latency ");
 		//Create my  client data 
 		myClientData = new ClientMetaData(clientPort, clientIPAddress,assignedServerIpAdress);
 		myClientData.setClientServerLatency(serverDelay);
@@ -172,7 +180,6 @@ public class Client implements Observer
 		try 
 		{
 	        FileInputStream fstream = null;
-	        clientIPAddress = GetMachineName();
 	        try 
 	        {
 	            fstream             = new FileInputStream(Constants.CLIENTS);
@@ -184,11 +191,13 @@ public class Client implements Observer
 	                if(!strLine.equalsIgnoreCase(""))
 	                {
 	                    String ip = strLine;
-						// Initial connected client is empty
-						ClientMetaData clientMetaData = new ClientMetaData();
-						clientList.put(ip, clientMetaData);
+	                    if(!ip.equalsIgnoreCase(clientIPAddress))
+	                    {
+							// Initial connected client is empty
+							ClientMetaData clientMetaData = new ClientMetaData();
+							clientList.put(ip, clientMetaData);
+	                    }
 
-	                    
 	                }
 	            }
 	            in.close();
@@ -351,7 +360,7 @@ public class Client implements Observer
 			for(String sIP : serverList.keySet())
 			{
 				long start = System.currentTimeMillis();
-				Socket socket = new Socket(getAssignedServerIpAdress(),Constants.PORT);
+				Socket socket = new Socket(sIP,Constants.PORT);
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 				ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
@@ -365,6 +374,8 @@ public class Client implements Observer
 					{
 						long delay = System.currentTimeMillis() - start;
 						serverDelay.put(sIP, delay);
+						String message = "Server:"+sIP+" Latency:"+delay;
+						Logger.print(message);
 						
 					}
 				}
@@ -393,6 +404,8 @@ public class Client implements Observer
 				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
 				initialMessage.setServerDelay(serverDelay);
 				initialMessage.setEndResult(true);
+				String message = "Client:"+clientIPAddress+" Inform Initial Latency:"+sIP;
+				Logger.print(message);
 				toServer.writeObject(initialMessage);
 				toServer.flush();
 			}		
@@ -410,13 +423,13 @@ public class Client implements Observer
 	{
 		try 
 		{
-			String[] servers = (String[]) serverList.keySet().toArray();
-			String randomServer = servers[new Random().nextInt(servers.length)];
+			Object[] servers = serverList.keySet().toArray();
+			Object randomServer = servers[new Random().nextInt(servers.length)];
 			String message = "Client:"+clientIPAddress+" send JOIN request to:"+randomServer;
 			Logger.print(message);
 			InteractionMessage intMessage = new InteractionMessage(clientIPAddress, clientPort, Operation.JOIN, myClientData);
-			
-			Socket socket = new Socket(randomServer,Constants.PORT);
+			String s = (String) randomServer;
+			Socket socket = new Socket(s,Constants.PORT);
 			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 			ObjectInputStream  fromServer = new ObjectInputStream(socket.getInputStream());
 			toServer.writeObject(intMessage);
@@ -702,14 +715,14 @@ public class Client implements Observer
 			 */
 			if(!assignedServerIpAdress.equalsIgnoreCase(" "))
 			{
-				String[] clients = (String[]) (clientList.keySet().toArray());
-				String randomClient = clients[new Random().nextInt(clients.length)];
+				Object[] clients = clientList.keySet().toArray();
+				Object randomClient = clients[new Random().nextInt(clients.length)];
 				String message = "Client:"+clientIPAddress+" wants INTERACTION with:"+randomClient;
 				totalInteraction++;
 				InteractionRequest intRequest = new InteractionRequest(
 						clientIPAddress, clientPort, assignedServerIpAdress,
 						clientPort, message);
-				intRequest.setInteractedClientIP(randomClient);
+				intRequest.setInteractedClientIP((String)randomClient);
 				intRequest.setSequence(totalInteraction);
 				connectToServer(intRequest);
 				Logger.print(message);

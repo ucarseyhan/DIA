@@ -699,9 +699,6 @@ public class Server implements Observer
 						intResponse.setQoSAssignment(true);
 						intResponse.setOperation(Operation.JOIN);
 						intResponse.forward(cIp, Constants.PORT, intResponse);
-
-						
-
 					}
 				}
 				/*
