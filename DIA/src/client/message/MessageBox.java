@@ -1,7 +1,7 @@
 package client.message;
 
 import java.util.Observable;
-import java.util.Stack;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class MessageBox extends Observable {
@@ -12,34 +12,43 @@ public class MessageBox extends Observable {
 	 * message the client decode it and process by using its flag.
 	 */
 	//Declare variables.
-	private Stack<Message> messageBox;
+	private LinkedBlockingQueue<Interactable> messageBox;
 	
 	//Constructors.
-	public MessageBox(){
-		messageBox = new Stack<Message>();
+	public MessageBox()
+	{
+		messageBox = new LinkedBlockingQueue<Interactable>(1);
 	}
-	public void addMessage(Message m){
-		try {
-			messageBox.push(m);
+	public void addMessage(Interactable m)
+	{
+		try 
+		{
+			messageBox.add(m);
 			messageBoxChanged();
-		} catch (Exception e) {
-			// TODO: handle exception
+		} 
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 		}
 
 	}
-	public Message pop(){
-		return  messageBox.pop();
+	
+	public Interactable pop()
+	{
+		return  messageBox.poll();
 	}
-	public Message peek(){
+	public Interactable peek()
+	{
 		return messageBox.peek();
 	}
 	
-	public void messageBoxChanged(){
+	public void messageBoxChanged()
+	{
 		setChanged();
 		notifyObservers();
 	}
-	public void clear(){
+	public void clear()
+	{
 		messageBox.clear();
 	}
 

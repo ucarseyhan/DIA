@@ -1,5 +1,7 @@
 package client.message;
 
+import java.io.Serializable;
+
 
 /**
  * This class is used for the client interaction request.When the 
@@ -11,16 +13,23 @@ package client.message;
  * @author ucar
  *
  */
-public class InteractionRequest extends InteractionMessage {
+public class InteractionRequest extends InteractionMessage implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	//Declare variable
 	private String message = "";
 	//Default Constructor
-	public InteractionRequest(){
+	public InteractionRequest()
+	{
+		super();
 	}
 	//Specified Constructor
 	
 	//=======Getter and setter method==========================
-	public String getMessage() {
+	public String getMessage() 
+	{
 		return message;
 	}
 
@@ -33,7 +42,8 @@ public class InteractionRequest extends InteractionMessage {
 		this.message = message;
 	}
 
-	public void setMessage(String message) {
+	public void setMessage(String message) 
+	{
 		this.message = message;
 	}
 	

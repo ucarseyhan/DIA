@@ -75,13 +75,6 @@ public class InitialMessage implements Interactable,Serializable
 		this.fromServer = fromServer;
 	}
 
-	@Override
-	public void doOperation(Interactable message, boolean myClient,
-			String assignedServerIp) 
-	{
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public String getClientIp() {
@@ -159,6 +152,30 @@ public class InitialMessage implements Interactable,Serializable
 	public boolean isAddWaitingList() {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public void setRequestCompleted() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getInteractIP() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int getSequence() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void setSequence(int seq) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	

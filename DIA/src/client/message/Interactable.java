@@ -1,14 +1,14 @@
-package server.message;
+package client.message;
 
-
-
-import server.ClientMetaData;
-import server.Operation;
-import server.ServerMetaData;
-import server.Time;
+import client.ClientMetaData;
+import client.Operation;
+import client.ServerMetaData;
+import client.Time;
 
 public interface Interactable 
 {
+	
+	public void doOperation(Interactable message,boolean myClient,String assignedServerIp);
 	public String getClientIp();
 	public String getDestinationIp();
 	public String getReceiverIpAddress();

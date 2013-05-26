@@ -305,6 +305,7 @@ public class Server implements Observer
 			{
 				String ip = (String) i.next();
 				int port = serverList.get(ip).getPort();
+				periodicServerMessage.setTime(new Time());
 				connectToClientNode(ip, port, periodicServerMessage);
 			}
 			/**
@@ -319,6 +320,7 @@ public class Server implements Observer
 			{
 				String ip = (String) i.next();
 				int port = clientList.get(ip).getPort();
+				periodicServerMessage.setTime(new Time());
 				connectToClientNode(ip, port, periodicServerMessage);
 			}
 		
@@ -371,29 +373,24 @@ public class Server implements Observer
 						 * Reply to client
 						 */
 						init.setFromServer(true);
+						init.setServerIp(serverIp);
 						try 
 						{
 							Socket socket = new Socket(init.getIp(),Constants.PORT);
-							ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-							toServer.writeObject(init);
-							toServer.flush();
+							ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
+							toClient.writeObject(init);
+							toClient.flush();
 							socket.close();
 						}
 						catch (Exception e) 
 						{
-							// TODO: handle exception
 							e.printStackTrace();
 						}
 					}
 				}
 				else
 				{
-					String targetIp = msg.getReceiverIpAddress();
-					String clientIp = msg.getSenderIpAddress();
-					boolean myClient = isMyClient(targetIp);
-					String assignedServerIp = findClientAssignedServer(clientIp);
 					doOperationProcess(msg);
-					msg.doOperation(msg, myClient, assignedServerIp);
 				}
 
 				
@@ -425,6 +422,14 @@ public class Server implements Observer
 			case JOIN:
 				message = "JOIN from "+msg.getSenderIpAddress();
 				responseJoinOperation(msg);
+				Logger.print(message);
+				break;
+			//Interact with other clients
+			case INTERACT:
+				String clientIp = msg.getClientIp();
+				String interactIp = msg.getInteractIP();
+				message = "Client:"+clientIp+" wants INTERACT with:"+interactIp;
+				responseInteractOperation(msg);
 				Logger.print(message);
 				break;
 			// Add the client into client list
@@ -675,22 +680,26 @@ public class Server implements Observer
 					//Control the server capacity
 					if(serverHasCapacity(sQoSIp))
 					{
+						
+						
+						
 						// Connect to coming client into defined server
-						// Create the messages and send it to client
+						//Inform the server
 						InteractionResponse intResponse = new InteractionResponse(
+								serverIp, serverPort, sQoSIp, Constants.PORT, "");
+						intResponse.setClientIP(cIp);
+						intResponse.setConnecToServerIp(sQoSIp);
+						intResponse.setOperation(Operation.ADD);
+						intResponse.forward(sQoSIp, Constants.PORT, intResponse);
+						// Create the messages and send it to client
+						intResponse = new InteractionResponse(
 								serverIp, serverPort, cIp, Constants.PORT, "");
 						intResponse.setConnecToServerIp(sQoSIp);
 						//Client uses this to inform the server
 						intResponse.setQoSAssignment(true);
 						intResponse.setOperation(Operation.JOIN);
 						intResponse.forward(cIp, Constants.PORT, intResponse);
-						//Inform the server
-						intResponse = new InteractionResponse(
-								serverIp, serverPort, sQoSIp, Constants.PORT, "");
-						intResponse.setClientIP(cIp);
-						intResponse.setConnecToServerIp(sQoSIp);
-						intResponse.setOperation(Operation.ADD);
-						intResponse.forward(sQoSIp, Constants.PORT, intResponse);
+
 						
 
 					}
@@ -707,6 +716,7 @@ public class Server implements Observer
 					intResponse.forward(cIp, Constants.PORT, intResponse);
 					//Update the client metadata in first message from client
 					clientList.put(cIp, new ClientMetaData());
+					capacity--;
 					
 					
 				}
@@ -721,19 +731,20 @@ public class Server implements Observer
 				if(!sMinCap.equalsIgnoreCase(serverIp))
 				{
 					//Connect to coming client into defined server
-					//Create the messages and send it to client
-					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(sMinCap);
-					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
 					//Inform the server
-					intResponse = new InteractionResponse(
+					InteractionResponse intResponse = new InteractionResponse(
 							serverIp, serverPort, sMinCap, Constants.PORT, "");
 					intResponse.setClientIP(cIp);
 					intResponse.setConnecToServerIp(sMinCap);
 					intResponse.setOperation(Operation.ADD);
 					intResponse.forward(sMinCap, Constants.PORT, intResponse);
+					//Create the messages and send it to client
+					intResponse = new InteractionResponse(
+							serverIp, serverPort, cIp, Constants.PORT, "");
+					intResponse.setConnecToServerIp(sMinCap);
+					intResponse.setOperation(Operation.JOIN);
+					intResponse.forward(cIp, Constants.PORT, intResponse);
+
 				}
 				else if(sMinCap.equalsIgnoreCase(serverIp))
 				{
@@ -756,20 +767,21 @@ public class Server implements Observer
 				if(!sCap.equalsIgnoreCase(serverIp))
 				{
 					//Connect to coming client into defined server
-					//Create the messages and send it to client
-					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(sCap);
-					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
-					
 					//Inform the server
-					intResponse = new InteractionResponse(
+					InteractionResponse intResponse = new InteractionResponse(
 							serverIp, serverPort, sCap, Constants.PORT, "");
 					intResponse.setClientIP(cIp);
 					intResponse.setConnecToServerIp(sCap);
 					intResponse.setOperation(Operation.ADD);
 					intResponse.forward(sCap, Constants.PORT, intResponse);
+					//Create the messages and send it to client
+				    intResponse = new InteractionResponse(
+							serverIp, serverPort, cIp, Constants.PORT, "");
+					intResponse.setConnecToServerIp(sCap);
+					intResponse.setOperation(Operation.JOIN);
+					intResponse.forward(cIp, Constants.PORT, intResponse);
+					
+
 				}
 				else if(sCap.equalsIgnoreCase(serverIp))
 				{
@@ -794,6 +806,55 @@ public class Server implements Observer
 	}
 	//=========================================================================================
 	/**
+	 * Client wants to interact with another client. Server first
+	 * checks the interacted client. If it is server client then
+	 * directly sends Interaction response. If the client is not
+	 * server client then server forwards  the response to
+	 * clients assigned server.
+	 * @param msg
+	 */
+	public void responseInteractOperation(Interactable msg)
+	{
+		try 
+		{
+			
+			String interactedClientIp = msg.getInteractIP();
+			String clientIp = msg.getSenderIpAddress();
+			if(!interactedClientIp.equalsIgnoreCase(" "))
+			{
+				if(clientList.containsKey(interactedClientIp))
+				{
+					String message = "INTERACTION COMPLETED";
+					//Client is my client
+					int sequence = msg.getSequence();
+					InteractionResponse intResponse = new InteractionResponse(
+							serverIp, serverPort, clientIp,
+							Constants.PORT, message);
+					intResponse.setinteractedClient(interactedClientIp);
+					intResponse.setOperation(Operation.INTERACT);
+					intResponse.setSequence(sequence);
+					connectToClientNode(clientIp, Constants.PORT, intResponse);
+				}
+				else
+				{
+					String assignedServerIp = findClientAssignedServer(interactedClientIp);
+					if(!assignedServerIp.equalsIgnoreCase(" "))
+					{
+						connectToServer(assignedServerIp, Constants.PORT, msg);
+					}
+				}
+			}
+
+			
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//=========================================================================================
+	/**
 	 * Response to add operation.
 	 * @param msg
 	 */
@@ -806,6 +867,7 @@ public class Server implements Observer
 			{
 				String clientIP = msg.getClientIp();
 				clientList.put(clientIP, new ClientMetaData());
+				capacity--;
 				
 			}
 			
@@ -991,8 +1053,8 @@ public class Server implements Observer
 	{
 		try 
 		{
-			String serverIp = msg.getSenderIpAddress();
-			if(serverList.containsKey(serverIp))
+			String Ip = msg.getSenderIpAddress();
+			if(serverList.containsKey(Ip))
 			{
 				/**
 				 * Read the client meta data  and apply
@@ -1003,7 +1065,23 @@ public class Server implements Observer
 				if(clientList.containsKey(clientIp))
 				{
 					clientList.remove(clientIp);
+					capacity++;
+					//One client is removed applied reassignment
+					applyReAssignmentOperation();
 				}
+			}
+			/*
+			 * Client can want to leave from connected 
+			 * server. So when client issues and leave
+			 * operation remove from client list.  
+			 */
+			else if(clientList.containsKey(Ip))
+			{
+				ClientMetaData clientMetaData = msg.getClientMetaData();
+				String clientIp = clientMetaData.getIpAddress();
+				clientList.remove(clientIp);
+				//One client is removed applied reassignment
+				applyReAssignmentOperation();
 			}
 
 		} 
@@ -1024,6 +1102,7 @@ public class Server implements Observer
 	{
 		try {
 			boolean isServer = msg.isServer();
+			String Ip = msg.getSenderIpAddress();
 			/**
 			 * If message sender is server.
 			 */
@@ -1032,19 +1111,19 @@ public class Server implements Observer
 				/**
 				 * Extract information update server list.
 				 */
-				String serverIp = msg.getSenderIpAddress();
+				
 				ServerMetaData serverMetaData = msg.getServerMetaData();
-				if(serverList.containsKey(serverIp))
+				if(serverList.containsKey(Ip))
 				{
-					serverList.remove(serverIp);
-					serverList.put(serverIp, serverMetaData);
+					serverList.remove(Ip);
+					serverList.put(Ip, serverMetaData);
 				}
 				else
 				{
 					/**
 					 * Else put it into server list.
 					 */
-					serverList.put(serverIp, serverMetaData);
+					serverList.put(Ip, serverMetaData);
 				}
 			}
 			/**
@@ -1204,6 +1283,25 @@ public class Server implements Observer
 	 * client.
 	 */
 	public void connectToClientNode(String ip,int port,InteractionMessage m)
+	{
+
+		try 
+		{
+			Socket socket = new Socket(ip, port);
+			ObjectOutputStream toServer = new ObjectOutputStream(
+					socket.getOutputStream());
+			toServer.writeObject(m);
+			toServer.flush();
+			socket.close();
+		} 
+		catch (Exception e)
+		{
+		}
+		
+
+	}
+	
+	public void connectToServer(String ip,int port,Interactable m)
 	{
 
 		try 

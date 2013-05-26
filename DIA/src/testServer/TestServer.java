@@ -2,7 +2,8 @@ package testServer;
 
 import server.Server;
 
-public class TestServer {
+public class TestServer 
+{
 
 	/**
 	 * @param args

@@ -23,45 +23,19 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	//Declare variable
 	private String message = "";
 	//Default Constructor
-	public InteractionRequest(){
+	public InteractionRequest()
+	{
 		super();
 	}
-	@Override
-	public void doOperation(Interactable m,boolean myClient,String assignedServerIp) {
-		try 
-		{
-			if(myClient)
-			{
-				//It is my client send message to client.
-				forward(m.getReceiverIpAddress(), m.getReceiverPort(), m);
-				
-			}else
-			{
-				//If it is not my client first contact with assigned server.
-				//Send request directly to it
-				forward(assignedServerIp,m.getReceiverPort(),m);
-			}
-			
-			
-			
-
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}
-	}
-
 
 	@Override
 	public String getClientIp() 
 	{
-		// TODO Auto-generated method stub
 		return super.getSenderIpAddress();
 	}
 	@Override
 	public String getDestinationIp() 
 	{
-		// TODO Auto-generated method stub
 		return super.getReceiverIpAddress();
 	}
 	@Override
@@ -73,7 +47,6 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	@Override
 	public boolean isServer() 
 	{
-		// TODO Auto-generated method stub
 		return super.isServerRole();
 	}
 	@Override
@@ -107,29 +80,30 @@ public class InteractionRequest extends InteractionMessage implements Interactab
 	public String getMessage() {
 		return message;
 	}
-	public InteractionRequest(String message, int targetClientId,String targetClientIp,String myIp) {
+	public InteractionRequest(String message, 
+							  int targetClientId,
+							  String targetClientIp,
+							  String myIp) 
+	{
 		
 		super();
-		super.setReceiverId(targetClientId);
 		super.setReceiverIpAddress(targetClientIp);
 		super.setSenderIpAddress(myIp);
 		this.message = message;
 		
 	}
-	public void setMessage(String message) {
+	public void setMessage(String message) 
+	{
 		this.message = message;
 	}
-	public int getTargetClientId() {
-		return super.getReceiverId();
-	}
-
-
-	public String getTargetClientIp() {
+	public String getTargetClientIp() 
+	{
 		return super.getReceiverIpAddress();
 	}
 
 
-	public String getMyIp() {
+	public String getMyIp() 
+	{
 		return super.getSenderIpAddress();
 	}
 

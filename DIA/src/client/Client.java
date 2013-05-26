@@ -1,129 +1,533 @@
 package client;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.net.SocketException;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import client.message.ControllerInformationMessage;
+import java.util.concurrent.ConcurrentHashMap;
+import client.message.InitialMessage;
+import client.message.Interactable;
 import client.message.InteractionMessage;
 import client.message.InteractionRequest;
 import client.message.InteractionResponse;
-import client.message.Message;
 import client.message.MessageBox;
-import client.message.PeriodicServerMessage;
-import client.state.State;
 
 /**
- * This class is used for representing the client side.
- * @author ucar
- * 
+ * Client class is used for representing the 
+ * client in the DIA simulation.
  * 
  */
 
-public class Client implements Observer {
-	/**
-	 * States of the client
-	 */
-	private State UNDECIDED;
-	private State DECIDED;
-	private State SERVERELECTION;
-	private State CURRENTSTATE	= UNDECIDED;
-	//======================================
-	
-	
-	private ArrayList<ClientMetaData> clientList;
-	private String controllerIpAddress = "";
-	private int controllerPort = 4000;
-	private String nearestIpAddress = "";
-	private int nearestPort = 4000;
-	private String myIpAddress = "";
-	private int myPort = 4000;
-	private String assignedServerIpAdress = "";
-	private int assignedServerPort = 4000;
+/**
+ * @author seyhan
+ *
+ */
+public class Client implements Observer 
+{
+	private ConcurrentHashMap<String, ClientMetaData> clientList;
+	private ConcurrentHashMap<String, ServerMetaData> serverList;
+	private Hashtable<String, Long> serverDelay;
 	private Timer timer;
 	private TimerTask timerTask;
-	private Random rand;
+	private TimerTask clientBehaviourTask;
 	private MessageBox messageBox;
-	private int myId = -1;
+	private ClientHelper clientHelper;
+	private String clientIPAddress = "";
+	private int clientPort = Constants.PORT;
+	private int totalClient = 0;
+	private int totalInteraction = 0;
+	private int max = 0; 
+	private int min = 0;
+	private String assignedServerIpAdress = "";
+	//Interaction message
+	private InteractionMessage periodicClientMessage;
+	private ClientMetaData myClientData;
+
 	
 	//Default constructor
-	public Client(){
-		//Read text file and construct server list.(for nearest)
-		//Read text file construct client list.
-		clientList = new ArrayList<ClientMetaData>();
-		rand = new Random();
+	public Client()
+	{
+		/*
+		 * Clean the results file
+		 */
+		File f = new File(Constants.RESULTFILE);
+		if(f.exists())
+		{
+			f.delete();
+		}
+		//Create necessary data structure
+		clientList = new ConcurrentHashMap<String, ClientMetaData>();
+		serverList = new ConcurrentHashMap<String, ServerMetaData>();
+		serverDelay = new Hashtable<String, Long>();
 		messageBox = new MessageBox();
+		messageBox.addObserver(this);
+		/*
+		 * Read text files and fill the servers and 
+		 * existing clients
+		 */
+		readServerFiles();
+		readClientFiles();
+		readParameterFiles();
+		computeInitialLatency();
+		informInitialLatency();
+		//Create my  client data 
+		myClientData = new ClientMetaData(clientPort, clientIPAddress,assignedServerIpAdress);
+		myClientData.setClientServerLatency(serverDelay);
+		
+		periodicClientMessage = new InteractionMessage(clientIPAddress,clientPort,
+				Operation.DEFAULT,
+				myClientData);
+		
+		clientHelper = new ClientHelper(messageBox);
+		new Thread(clientHelper).start();
 		timer  = new Timer();
+		sendJoinRequest();
 		initialTimerTask();
+		initialClientBehaviourTask();
 
 	}
+	//=============================================================================================
 	/**
-	 * In the first state client starts to get controller 
-	 * information till one of the server response.
+	 * Read the server file and be aware of the existing
+	 * servers
 	 */
-	public void initialTimerTask(){
-		try {
+	public void readServerFiles()
+	{
+		try 
+		{
+	        FileInputStream fstream = null;
+	        clientIPAddress = GetMachineName();
+	        try 
+	        {
+	            fstream             = new FileInputStream(Constants.SERVERS);
+	            DataInputStream in  = new DataInputStream(fstream);
+	            BufferedReader br   = new BufferedReader(new InputStreamReader(in));
+	            String strLine;
+	            /**
+	             * Add parameters into parameter file
+	             * and read here.
+	             */
+	            while ((strLine = br.readLine()) != null) 
+	            {
+	                if(!strLine.equalsIgnoreCase(""))
+	                {
+	                    String ip = strLine;
+						// Initial connected client is empty
+						ServerMetaData serverMetaData = new ServerMetaData();
+						serverMetaData.setServerIp(ip);
+						serverList.put(ip, serverMetaData);
+
+	                    
+	                }
+	            }
+	            in.close();
+	        } 
+	        catch (IOException ex) 
+	        {
+	            System.err.println("could not read the parameter value!");
+	        } 
+	        finally 
+	        {
+	            try 
+	            {
+	                fstream.close();
+	            } 
+	            catch (IOException ex) 
+	            {
+	                System.err.println("could not finish IO operation!");
+	            }
+	        }
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.readServerFiles()");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Read the server file and be aware of the existing
+	 * servers
+	 */
+	public void readClientFiles()
+	{
+		try 
+		{
+	        FileInputStream fstream = null;
+	        clientIPAddress = GetMachineName();
+	        try 
+	        {
+	            fstream             = new FileInputStream(Constants.CLIENTS);
+	            DataInputStream in  = new DataInputStream(fstream);
+	            BufferedReader br   = new BufferedReader(new InputStreamReader(in));
+	            String strLine;
+	            while ((strLine = br.readLine()) != null) 
+	            {
+	                if(!strLine.equalsIgnoreCase(""))
+	                {
+	                    String ip = strLine;
+						// Initial connected client is empty
+						ClientMetaData clientMetaData = new ClientMetaData();
+						clientList.put(ip, clientMetaData);
+
+	                    
+	                }
+	            }
+	            in.close();
+	        } 
+	        catch (IOException ex) 
+	        {
+	            System.err.println("could not read the parameter value!");
+	        } 
+	        finally 
+	        {
+	            try 
+	            {
+	                fstream.close();
+	            } 
+	            catch (IOException ex) 
+	            {
+	                System.err.println("could not finish IO operation!");
+	            }
+	        }
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Client.readClientFiles()");
+			e.printStackTrace();
+		}
+	}
+	
+	
+	//=====================================================================================================
+	/**
+	 * Read the parameter file. The parameter list is;
+	 * 0-server capacity
+	 * 1-rjl(1 active, 0 disabled)
+	 * 2-rjlThreshold
+	 * 3-QoSThreshold
+	 * 4-totalClient
+	 * 5-write log enabled(1 active 0 disabled)
+	 * 6-max
+	 * 7-min
+	 */
+	public void readParameterFiles()
+	{
+		try 
+		{
+	        FileInputStream fstream = null;
+	        try 
+	        {
+	            fstream             = new FileInputStream(Constants.PARAMETER);
+	            DataInputStream in  = new DataInputStream(fstream);
+	            BufferedReader br   = new BufferedReader(new InputStreamReader(in));
+	            String strLine;
+	            /**
+	             * Add parameters into parameter file
+	             * and read here.
+	             */
+	            String[] splitted = new String[8];
+	            while ((strLine = br.readLine()) != null) 
+	            {
+	                if(!strLine.equalsIgnoreCase(""))
+	                {
+	                    splitted = strLine.split(" ");
+	                    int capacity = Integer.parseInt(splitted[0]);
+	                    int totalClient = Integer.parseInt(splitted[4]);
+	                    int log = Integer.parseInt(splitted[5]);
+	                    min = Integer.parseInt(splitted[6]);
+	                    max = Integer.parseInt(splitted[7]);
+	                    if(log == 1) Constants.LOG = true;
+                    	this.totalClient = totalClient;
+                    	//Set the server capacity
+                    	for (String sIP : serverList.keySet()) 
+                    	{
+                    		serverList.get(sIP).setCapacity(capacity);
+						}
+	                }
+	            }
+	            in.close();
+	        } 
+	        catch (IOException ex) 
+	        {
+	            System.err.println("could not read the parameter value!");
+	        } 
+	        finally 
+	        {
+	            try 
+	            {
+	                fstream.close();
+	            } 
+	            catch (IOException ex) 
+	            {
+	                System.err.println("could not finish IO operation!");
+	            }
+	        }
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			System.out.println("Server.readServerFiles()");
+			e.printStackTrace();
+		}
+	}
+	//================================================================================================
+	/**
+	 * Get host name of the machine.
+	 * 
+	 * @return
+	 */
+	private String GetMachineName() 
+	{
+		String name = null;
+		Enumeration<NetworkInterface> enet = null;
+		try 
+		{
+			enet = NetworkInterface.getNetworkInterfaces();
+		} 
+		catch (SocketException e1) 
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		while (enet.hasMoreElements() && (name == null)) 
+		{
+			NetworkInterface net = enet.nextElement();
+
+			try 
+			{
+				if (net.isLoopback())	continue;
+			} 
+			catch (SocketException e) 
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Enumeration<InetAddress> eaddr = net.getInetAddresses();
+			while (eaddr.hasMoreElements()) 
+			{
+				InetAddress inet = eaddr.nextElement();
+				if (inet.getCanonicalHostName().equalsIgnoreCase(inet.getHostAddress()) == false) 
+				{
+					name = inet.getCanonicalHostName();
+					break;
+				}
+			}
+		}
+
+		return name;
+	}
+	//===============================================================================================
+	/**
+	 * In initial phase servers needs the client-server latency.
+	 * For that reason each client contacts with the existing 
+	 * servers and compute the delay between each other. 
+	 * 
+	 */
+	public void computeInitialLatency()
+	{
+		try 
+		{
+			for(String sIP : serverList.keySet())
+			{
+				long start = System.currentTimeMillis();
+				Socket socket = new Socket(getAssignedServerIpAdress(),Constants.PORT);
+				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+				ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
+				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
+				toServer.writeObject(initialMessage);
+				toServer.flush();
+				//Wait from server
+				InitialMessage initialFromServer = (InitialMessage) (fromServer.readObject());
+				if(initialFromServer.isFromServer())
+				{
+					if(initialFromServer.getServerIp().equalsIgnoreCase(sIP))
+					{
+						long delay = System.currentTimeMillis() - start;
+						serverDelay.put(sIP, delay);
+						
+					}
+				}
+			}
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//=========================================================================================================
+	/**
+	 * After determination of client server latency pair
+	 * client inform each server about the latency so servers
+	 * can use the delay to perform assignment operation.
+	 */
+	public void informInitialLatency()
+	{
+		try 
+		{
+			for(String sIP : serverList.keySet())
+			{
+				Socket socket = new Socket(getAssignedServerIpAdress(),Constants.PORT);
+				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+				InitialMessage initialMessage = new InitialMessage(clientIPAddress, sIP);
+				initialMessage.setServerDelay(serverDelay);
+				initialMessage.setEndResult(true);
+				toServer.writeObject(initialMessage);
+				toServer.flush();
+			}		
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//=============================================================================================================
+	/**
+	 * 
+	 */
+	public void sendJoinRequest()
+	{
+		try 
+		{
+			String[] servers = (String[]) serverList.keySet().toArray();
+			String randomServer = servers[new Random().nextInt(servers.length)];
+			String message = "Client:"+clientIPAddress+" send JOIN request to:"+randomServer;
+			Logger.print(message);
+			InteractionMessage intMessage = new InteractionMessage(clientIPAddress, clientPort, Operation.JOIN, myClientData);
+			
+			Socket socket = new Socket(randomServer,Constants.PORT);
+			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+			ObjectInputStream  fromServer = new ObjectInputStream(socket.getInputStream());
+			toServer.writeObject(intMessage);
+			toServer.flush();
+			
+			InteractionResponse intResponse = (InteractionResponse)(fromServer.readObject());
+			assignedServerIpAdress = intResponse.getConnectedServer();
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		
+	}
+	//======================================================================================
+	/**
+	 * 
+	 */
+	public void initialTimerTask()
+	{
+		try 
+		{
 			//First state get controller info.
-			timerTask = new TimerTask() {
+			timerTask = new TimerTask() 
+			{
 				@Override
-				public void run() {
-					sendControllerInfoRequest();
+				public void run() 
+				{
+					sendPeriodicHello();
 				}
 			};
-			int r = rand.nextInt(clientList.size());
+			int r = generateNumber(1, serverList.size());
 			//Start the process.
 			timer.schedule(timerTask, r * 500, r*1000);
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			System.out.println("Client:initialTimerTask() method");
 			e.printStackTrace();
 		}
 	}
+	
+	public void initialClientBehaviourTask()
+	{
+		try 
+		{
+			clientBehaviourTask = new TimerTask() 
+			{
+				@Override
+				public void run() 
+				{
+					clientBehaviour();
+				}
+			};
+			int r = generateNumber(1, serverList.size());
+			//Start the process.
+			timer.schedule(clientBehaviourTask, r * 500, r*1000);
+		} 
+		catch (Exception e) 
+		{
+			System.out.println("Client:initialClientBehaviourTask()");
+			e.printStackTrace();
+		}
+	}
+	//=====================================================================================
+	/**
+	 * Send periodic HELLO messages to assigned server.
+	 * So server can check the connection based on message
+	 * reception.
+	 * 
+	 */
+	public void sendPeriodicHello()
+	{
+		try 
+		{
+			//If current client is assigned to server
+			if(!assignedServerIpAdress.equalsIgnoreCase(" "))
+			{
+				periodicClientMessage.setTime(new Time());
+				connectToServer(periodicClientMessage);
+			}
+		} 
+		catch (Exception e) 
+		{
+			System.out.println("Client.sendPeriodicHello()");
+			e.printStackTrace();
+		}
+	}
+		
 	@Override
 	/**
 	 * When client gets this message it control the message via this 
 	 * method.
 	 */
-	public void update(Observable o, Object obj) {
+	public void update(Observable o, Object obj) 
+	{
 		/**
 		 * Check the coming message do required operation.
 		 */
-		try {
-			if(o instanceof MessageBox){
+		try 
+		{
+			if(o instanceof MessageBox)
+			{
 				MessageBox mBox = (MessageBox)o;
 				this.messageBox = mBox;
 				/**
 				 * Message is in the stack.So get it out and do
 				 * the process.
 				 */
-				Message msg = messageBox.pop();
-				if(msg instanceof ControllerInformationMessage){
-					cancelTimerTask();
-					ControllerInformationMessage cInf = (ControllerInformationMessage)(msg);
-					CURRENTSTATE.getControllerInfoMessage(cInf);
-				}else if(msg instanceof InteractionMessage){
-					if(msg instanceof InteractionResponse){
-						//Client get interaction response.
-						InteractionResponse intMsg = (InteractionResponse)(msg);
-						CURRENTSTATE.getInteractionResponse(intMsg);
-//						cancelTimerTask();
-//						randomWaitRequestInteraction();
-						int r = rand.nextInt(clientList.size());
-						//Start the process.
-						timer.schedule(timerTask, r * 500, r*1000);
-					}
-				}else if(msg instanceof PeriodicServerMessage){
-					PeriodicServerMessage pMsg = (PeriodicServerMessage)(msg);
-					CURRENTSTATE.getServerPeriodicMessage(pMsg);
-				}else if(msg instanceof InteractionRequest){
-					//InteractionRequest intRequest = (InteractionRequest)(msg);
-					
-				}
-				
+				Interactable msg = messageBox.pop();
+				doOperationProcess(msg);
 			}
 			
 		} catch (Exception e) {
@@ -131,278 +535,361 @@ public class Client implements Observer {
 			e.printStackTrace();
 		}
 	}
-	public void randomWaitRequestAssignment(){
-		try {
-			int r = rand.nextInt(10);
-			Thread.sleep(r * 1000);
-			timerTask = new TimerTask() {
-				@Override
-				public void run() {
-					CURRENTSTATE.requestAssignment();
-				}
-			};
-			r = rand.nextInt(10);
-			//Start the process.
-			timer.schedule(timerTask, r * 500, r * 1000);
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}
-	}
-	public void randomWaitRequestInteraction(){
-		try {
-			int r = rand.nextInt(clientList.size());
-			Thread.sleep(r * 1000);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		try {
-			timerTask = new TimerTask() {
-				@Override
-				public void run() {
-					CURRENTSTATE.requestInteraction();
-				}
-			};
-			int r = rand.nextInt(clientList.size());
-			//Start the process.
-			timer.schedule(timerTask, r * 500, r * 1000);
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}
-	}
+	//===============================================================================
 	/**
-	 * In this method the client send controller request
-	 * information from the nearest server.There is no chance
-	 * of client to know the current controller.
-	 */
-	public void sendControllerInfoRequest() {
-		try {
-			//Create the message.
-			ControllerInformationMessage controlRequest = new ControllerInformationMessage(getMyIpAddress(),
-																	 getMyPort(),
-																	 getNearestIpAddress(),
-																	 getNearestPort(),
-																	 getControllerIpAddress(),
-																	 getControllerPort());
-			//Find nearest server.
-			findNearestServer();
-			//Connect to nearest server and request controller information
-			connectToNearestServer(controlRequest);
-		} catch (Exception e) {
-			System.out.println("Client:getControllerResponse() method");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * This method is executed when client needs controller information from
-	 * nearest server.By using this method client learns the current controller.
-	 * @param m
-	 */
-	public void connectToNearestServer(Message m) {
-		try {
-			Socket socket = new Socket(getNearestIpAddress(),getNearestPort());
-			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-			toServer.writeObject(m);
-			toServer.flush();
-		} catch (Exception e) {
-			System.out.println("Client:connectToNearestServer()");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * In the first phase of the client assignment
-	 * client send message to controller directly.
-	 */
-	public void connectToController(Message m) {
-		try {
-			Socket socket = new Socket(getControllerIpAddress(),getControllerPort());
-			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-			toServer.writeObject(m);
-			toServer.flush();
-		} catch (Exception e) {
-			System.out.println("Client:connectToNearestServer()");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * When client gets response from one of the replicated
-	 * server it updates the assigned server information and
-	 * from now on it sends its message to directly assigned server.
-	 */
-	public void connectToAssignedServer(Message m) {
-		try {
-			Socket socket = new Socket(getAssignedServerIpAdress(),getAssignedServerPort());
-			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-			toServer.writeObject(m);
-			toServer.flush();
-		} catch (Exception e) {
-			System.out.println("Client:connectToNearestServer()");
-			e.printStackTrace();
-		}
-	}
-	public void sendInteractionRequestToAssignedServer(){
-		try {
-			
-		} catch (Exception e) {
-			// TODO: handle exception
-			System.out.println("Client:sendInteractionRequestToAssignedServer()");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * After some process client needs to change state.
-	 * When client issued state change this method is 
-	 * executed.
-	 * @param s
-	 */
-	public void setState(State s){
-		try {
-			this.CURRENTSTATE = s;
-		} catch (Exception e) {
-			System.out.println("Client:setState()");
-			e.printStackTrace();
-		}
-	}	
-	/**
-	 * This method is executed when client gets controller 
-	 * information from nearest server. By using controller
-	 * information client sends it request interaction to
-	 * controller.
-	 */
-	public void getControllerInformation(){
-		try {
-			/**
-			 * Use controller information and
-			 * do the process.
-			 * Update controller info.
-			 * Send interaction request and change state.
-			 */
-		} catch (Exception e) {
-			System.out.println("Client:getControllerInformation()");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * In UNDECIDED state client send controller request
-	 * to one of the nearest server. Search the nearest server
-	 * send request by controlling timer.
-	 * @return
-	 */
-	public void sendControllerInformationRequest(){
-		try {
-			
-		} catch (Exception e) {
-			System.out.println("Client:sendControllerInformationRequest()");
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * This method is executed when the client gets
-	 * the SERVERHELLO message. It updates the local 
-	 * information and change state to DECIDED.
+	 * For each coming messages below method is executed and
+	 * necessary operations are applied.
 	 * 
+	 * @param msg
 	 */
-	public void ServerHelloMessage(PeriodicServerMessage msg){
-		try {
-			String ip = msg.getServerIp();
-			if(!ip.equals(assignedServerIpAdress)){
-				assignedServerIpAdress = ip;
+	public void doOperationProcess(Interactable msg)
+	{
+		try 
+		{
+			controlListTimerExpiration();
+			Operation op = msg.getOperation();
+			String message = "";
+			switch (op) 
+			{
+			//Receives HELLO messages
+			case HELLO:
+				message = "HELLO from "+msg.getSenderIpAddress();
+				responseHelloOperation(msg);
+				Logger.print(message);
+				break;
+			case INTERACT:
+				message = "INTERACT response from "+msg.getSenderIpAddress();
+				responseInteractOperation(msg);
+				Logger.print(message);
+				break;
+
+			default:
+				System.out.println("NULL OPERATION");
+				break;
 			}
-		} catch (Exception e) {
-			System.out.println("Client:getPeriodicHelloMessage()");
+		} 
+		catch (Exception e) 
+		{
+			System.out.println("Server.doOperationProcess()");
+		}
+		
+	}
+	//===============================================================================
+	//==================================================================================
+	/**
+	 * For each operation control the server and client lists.
+	 * If any of them goes down then remove from current server
+	 * data structures.
+	 */
+	public void controlListTimerExpiration()
+	{
+		try 
+		{
+			//Check server
+			Set<String>	set = serverList.keySet();
+			Iterator<String>i = set.iterator();
+			while (i.hasNext()) 
+			{
+				Time now = new Time();
+				String sIp = (String) i.next();
+				ServerMetaData sMeta = serverList.get(sIp);
+				Time lastTransaction = sMeta.getLastTransaction();
+				//If the time difference is greater than threshold remove
+				if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
+				{
+					serverList.remove(sIp);					
+				}
+			}
+		} 
+		catch (Exception e) 
+		{
+			System.out.println("Client.controlListTimerExpiration()");
 			e.printStackTrace();
 		}
 	}
+	//===============================================================================
+	/**
+	 * For each coming server's HELLO message, client updates
+	 * the server list and related server metadata.
+	 *  
+	 * @param msg
+	 */
+	public void responseHelloOperation(Interactable msg)
+	{
+		try 
+		{
+			String serverIP = msg.getSenderIpAddress();
+			if(!serverIP.equalsIgnoreCase(" "))
+			{
+				if(assignedServerIpAdress.equalsIgnoreCase(serverIP))
+				{
+					ServerMetaData sMeta = msg.getServerMetaData();
+					sMeta.setLastTransaction(new Time());
+					serverList.remove(assignedServerIpAdress);
+					serverList.put(assignedServerIpAdress, sMeta);
+				}
+			}
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//===============================================================================
+	public void responseInteractOperation(Interactable msg)
+	{
+		try 
+		{
+			String serverIp = msg.getSenderIpAddress();
+			String cIP = msg.getReceiverIpAddress();
+			String interactedClient = msg.getInteractIP();
+			if(cIP.equalsIgnoreCase(clientIPAddress))
+			{
+				String log = Constants.INTRESP + " " + clientIPAddress + " "
+						+ serverIp + " " + interactedClient + " "
+						+ msg.getSequence() + " " + System.currentTimeMillis();
+				Logger.log(log);
+			}
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//===============================================================================
+	/**
+	 * This method is evaluated by client and for each evaluation 
+	 * client will implement some methods such as;
+	 * DELETE:     client will disconnect from connected server and starts
+	 * 		       to initial process again.
+	 * INTERACT:   client wants to interact with another client
+	 */
+	public void clientBehaviour()
+	{
+		try 
+		{
+			//If current client is assigned to server
+			if(!assignedServerIpAdress.equalsIgnoreCase(" "))
+			{
+				Operation op   = Operation.r.random();
+				switch (op) 
+				{
+				case DELETE:
+					responseClientDeleteBehaviour();
+					break;
+				case INTERACT:
+					responseInteractBehaviour();
+					break;
+				}
+			}
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		
+	}
+	//===================================================================================
+	public void responseInteractBehaviour()
+	{
+		try 
+		{
+			/*
+			 * Control if client is connected.If it is
+			 * connected then initiate an interaction between
+			 * other clients.
+			 */
+			if(!assignedServerIpAdress.equalsIgnoreCase(" "))
+			{
+				String[] clients = (String[]) (clientList.keySet().toArray());
+				String randomClient = clients[new Random().nextInt(clients.length)];
+				String message = "Client:"+clientIPAddress+" wants INTERACTION with:"+randomClient;
+				totalInteraction++;
+				InteractionRequest intRequest = new InteractionRequest(
+						clientIPAddress, clientPort, assignedServerIpAdress,
+						clientPort, message);
+				intRequest.setInteractedClientIP(randomClient);
+				intRequest.setSequence(totalInteraction);
+				connectToServer(intRequest);
+				Logger.print(message);
+				
+				String log = Constants.INTREQ + " " + assignedServerIpAdress
+						+ " " + randomClient + " " + totalInteraction + " "
+						+ System.currentTimeMillis();
+				Logger.log(log);
+			}
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//===================================================================================
 	/**
 	 * 
-	 * @return
 	 */
-	public void findNearestServer(){
-		try {
-			/**
-			 * If nearest server is not determined  search 
-			 * the server list and update nearest server information.
+	public void responseClientDeleteBehaviour()
+	{
+		try 
+		{
+			/*
+			 * Control if client is connected
+			 * Connected then send delete message
+			 * to server and restarts initial 
+			 * process
 			 */
-		} catch (Exception e) {
-			System.out.println("Client:findNearestServer()");
+			if(!assignedServerIpAdress.equalsIgnoreCase(" "))
+			{
+				InteractionMessage intMessage = new InteractionMessage(
+						clientIPAddress, clientPort, Operation.DELETE,
+						myClientData);
+				connectToServer(intMessage);
+				assignedServerIpAdress = " ";
+				cancelTimerTasks();
+				/*
+				 * After DELETE operation sleep a little bit and 
+				 * apply the initial process again.
+				 */
+				int random = generateNumber(min, max);
+				sleep(random);
+				/*
+				 * Start initial process again.
+				 */
+				computeInitialLatency();
+				informInitialLatency();
+				sendJoinRequest();
+				initialTimerTask();
+				initialClientBehaviourTask();
+			}
+			
+		} 
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 		}
 	}
+	public void startInitialProcess()
+	{
+		try 
+		{
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	//===============================================================================
+	/**
+	 * When client wants to connect its assigned server then
+	 * it will call the below method.
+	 */
+	public void connectToServer(Interactable m) 
+	{
+		try
+		{
+			Socket socket = new Socket(assignedServerIpAdress,Constants.PORT);
+			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+			toServer.writeObject(m);
+			toServer.flush();
+		}
+		catch (Exception e) 
+		{
+			System.out.println("Client:connectToServer()");
+			e.printStackTrace();
+		}
+	}
+	
+	public void connectToSpecificServer(String serverIp,Interactable m) 
+	{
+		try
+		{
+			if(!serverIp.equalsIgnoreCase(" "))
+			{
+				Socket socket = new Socket(serverIp,Constants.PORT);
+				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+				toServer.writeObject(m);
+				toServer.flush();
+			}
+
+		}
+		catch (Exception e) 
+		{
+			System.out.println("Client:connectToSpecificServer()");
+			e.printStackTrace();
+		}
+	}
+	//==================================================================================
 	/**
 	 * By using the coming message the timer task is cancelled.
 	 * So when the clients wants to cancel the timer task the 
 	 * cancelTimerTask is executed.
 	 */
-	public void cancelTimerTask(){
-		try {
+	public void cancelTimerTasks()
+	{
+		try 
+		{
 			timer.cancel();
 			timer.purge();
-		} catch (Exception e) {
-			System.out.println("Client:cancelTimerTask()");
+		}
+		catch (Exception e) 
+		{
+			System.out.println("Client:cancelTimerTasks()");
 			e.printStackTrace();
 		}
 	}
-	//====================Getter and Setter Method======================
-	public State getUNDECIDED() {
-		return UNDECIDED;
+	//================================================================
+	/**
+	 * Generate random number in specific range.
+	 * 
+	 * @param min
+	 * @param max
+	 * @return
+	 */
+	public int generateNumber(int min,int max)
+	{
+		try 
+		{
+			return min + (int)(Math.random() * ((max - min) + 1));
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+			return -1;
+		}
 	}
-	public void setUNDECIDED(State uNDECIDED) {
-		UNDECIDED = uNDECIDED;
+	//==========================================================================
+	/**
+	 * Sleep the current thread in random
+	 * second.
+	 * @param random
+	 */
+	public void sleep(int random)
+	{
+		try 
+		{
+			Thread.sleep(random * 1000 );
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
 	}
-	public State getDECIDED() {
-		return DECIDED;
-	}
-	public void setDECIDED(State dECIDED) {
-		DECIDED = dECIDED;
-	}
-	public State getSERVERELECTION() {
-		return SERVERELECTION;
-	}
-	public void setSERVERELECTION(State sERVERELECTION) {
-		SERVERELECTION = sERVERELECTION;
-	}
-	public State getCURRENTSTATE() {
-		return CURRENTSTATE;
-	}
-	public void setCURRENTSTATE(State cURRENTSTATE) {
-		CURRENTSTATE = cURRENTSTATE;
-	}
-	public String getControllerIpAddress() {
-		return controllerIpAddress;
-	}
-	public void setControllerIpAddress(String controllerIpAddress) {
-		this.controllerIpAddress = controllerIpAddress;
-	}
+	//===========================================================================
 	public String getMyIpAddress() {
-		return myIpAddress;
+		return clientIPAddress;
 	}
 	public void setMyIpAddress(String myIpAddress) {
-		this.myIpAddress = myIpAddress;
-	}
-	public int getMyId() {
-		return myId;
-	}
-	public void setMyId(int myId) {
-		this.myId = myId;
-	}
-	public int getControllerPort() {
-		return controllerPort;
-	}
-	public void setControllerPort(int controllerPort) {
-		this.controllerPort = controllerPort;
-	}
-	public ArrayList<ClientMetaData> getClientList() {
-		return clientList;
-	}
-	public void setClientList(ArrayList<ClientMetaData> clientList) {
-		this.clientList = clientList;
+		this.clientIPAddress = myIpAddress;
 	}
 	public int getMyPort() {
-		return myPort;
+		return clientPort;
 	}
 	public void setMyPort(int myPort) {
-		this.myPort = myPort;
+		this.clientPort = myPort;
 	}
 	public String getAssignedServerIpAdress() {
 		return assignedServerIpAdress;
@@ -410,25 +897,16 @@ public class Client implements Observer {
 	public void setAssignedServerIpAdress(String assignedServerIpAdress) {
 		this.assignedServerIpAdress = assignedServerIpAdress;
 	}
-	public int getAssignedServerPort() {
-		return assignedServerPort;
+	public int getTotalClient() {
+		return totalClient;
 	}
-	public void setAssignedServerPort(int assignedServerPort) {
-		this.assignedServerPort = assignedServerPort;
+	public void setTotalClient(int totalClient) {
+		this.totalClient = totalClient;
 	}
-	public String getNearestIpAddress() {
-		return nearestIpAddress;
+	public void printStartingMessages()
+	{
+		System.out.println("Client is startting");
 	}
-	public void setNearestIpAddress(String nearestIpAddress) {
-		this.nearestIpAddress = nearestIpAddress;
-	}
-	public int getNearestPort() {
-		return nearestPort;
-	}
-	public void setNearestPort(int nearestPort) {
-		this.nearestPort = nearestPort;
-	}
-	
 	
 	
 	

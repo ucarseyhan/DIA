@@ -5,54 +5,63 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import client.message.Message;
+import client.message.Interactable;
 import client.message.MessageBox;
 
 public class ClientHelper implements Runnable 
 {
-	/**
-	 * 
+	/* 
 	 * Declare the variable.
 	 */
-	private int port = 4000;
+	private int port = Constants.PORT;
 	private MessageBox messageBox;
 	private ObjectInputStream inputFromClient;
 	private ServerSocket serverSocket;
 
-	// Constructors
-	
-	public ClientHelper() {
+	//Constructors
+	public ClientHelper() 
+	{
 
 	}
-
-	public ClientHelper(MessageBox mBox) {
+	//Specified Constructor
+	public ClientHelper(MessageBox mBox) 
+	{
 		this.messageBox = mBox;
-		try {
+		try 
+		{
 			serverSocket = new ServerSocket(this.port);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		}
+		catch (IOException e) 
+		{
 			e.printStackTrace();
 		}
 	}
-
-	// Start the listening porcess.
-	public void start() {
-		try {
-			System.out.println("Server serverhelper serverport is started:"+ port);
-			while (true) {
+	//===================================================================
+	/*
+	 * Start the listening process.
+	 */
+	public void start() 
+	{
+		try 
+		{
+			while (true) 
+			{
 				Socket clientSocket = serverSocket.accept();
 				inputFromClient = new ObjectInputStream(clientSocket.getInputStream());
-				Message msg = (Message) inputFromClient.readObject();
+				Interactable msg = (Interactable) inputFromClient.readObject();
 				messageBox.addMessage(msg);
-
 			}
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 		}
 	}
 
 	@Override
-	public void run() {
-		while (true) {
+	public void run() 
+	{
+		while (true) 
+		{
 			start();
 		}
 	}

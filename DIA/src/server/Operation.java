@@ -7,7 +7,8 @@ public enum Operation {
 	SUMMARY,		//Request server summary
 	HELLO,  		//HELLO Messages
 	DEFAULT, 		//Default operation
-	WAITINGLIST;	//Add into waiting list
+	WAITINGLIST,	//Add into waiting list
+	INTERACT;       //Interaction request from client
 	@Override
 	public String toString() 
 	{

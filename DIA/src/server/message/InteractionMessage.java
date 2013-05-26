@@ -37,7 +37,8 @@ public class InteractionMessage implements Interactable,Serializable
 	private boolean addWaitingList = false;
 	private String clientIP = "";
 	
-	private int receiverId = 0; 
+	private String interactedClientIP = " ";
+	
 	private Operation operation;
 	private ConcurrentHashMap<String, ClientMetaData> clientList;
 	private ConcurrentHashMap<String, ServerMetaData> serverList;
@@ -45,6 +46,8 @@ public class InteractionMessage implements Interactable,Serializable
 	private ClientMetaData clientMetaData;
 	private Time time;
 	private boolean serverRole = false;
+	private boolean requestCompleted = false;
+	private int sequence = 0;
 	
 	//Default Constructor
 	public InteractionMessage()
@@ -60,6 +63,7 @@ public class InteractionMessage implements Interactable,Serializable
 		this.senderPort = senderPort;
 		this.receiverIpAddress = receiverIpAddress;
 		this.receiverPort = receiverPort;
+		this.time = new Time();
 	}
 	
 	public InteractionMessage(String senderIpAddress, int senderPort,
@@ -71,22 +75,28 @@ public class InteractionMessage implements Interactable,Serializable
 		this.operation = operation;
 		this.clientList = clientList;
 		this.serverMetaData = serverMetaData;
+		this.time = new Time();
 	}
 	
-	public void forward(String ip,int port,Interactable m){
-		try {
-			try {
+	public void forward(String ip,int port,Interactable m)
+	{
+		try 
+		{
+			try 
+			{
 				Socket socket = new Socket(ip,port);
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 				toServer.writeObject(m);
 				toServer.flush();
 				socket.close();
-			} catch (Exception e) {
-				// TODO: handle exception
+			} 
+			catch (Exception e) 
+			{
 				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			// TODO: handle exception
+		} 
+		catch (Exception e) 
+		{
 		}
 	}
 	/**
@@ -97,131 +107,200 @@ public class InteractionMessage implements Interactable,Serializable
 	{
 		return clientMetaData.getConnectedServerIp();
 	}
-	
-	
-	//========Getter and Setter Methods======================
-
-	public String getSenderIpAddress() {
-		return senderIpAddress;
-	}
-	public void setSenderIpAddress(String senderIpAddress) {
-		this.senderIpAddress = senderIpAddress;
-	}
-
-	public String getReceiverIpAddress() {
-		return receiverIpAddress;
-	}
-
-	public void setReceiverIpAddress(String receiverIpAddress) {
-		this.receiverIpAddress = receiverIpAddress;
-	}
-	public int getSenderPort() {
-		return senderPort;
-	}
-	public void setSenderPort(int senderPort) {
-		this.senderPort = senderPort;
-	}
-	public int getReceiverPort() {
-		return receiverPort;
-	}
-	public void setReceiverPort(int receiverPort) {
-		this.receiverPort = receiverPort;
-	}
-	public Operation getOperation() {
-		return operation;
-	}
-	public void setOperation(Operation operation) {
-		this.operation = operation;
-	}
-	public ConcurrentHashMap<String, ClientMetaData> getClientList() {
-		return clientList;
-	}
-	public void setClientList(ConcurrentHashMap<String, ClientMetaData> clientList) {
-		this.clientList = clientList;
-	}
-	public ServerMetaData getServerMetaData() {
-		return serverMetaData;
-	}
-	public void setServerList(ServerMetaData serverMetaData) {
-		this.serverMetaData = serverMetaData;
-	}
-	public int getSenderId() {
-		return senderId;
-	}
-	public void setSenderId(int senderId) {
-		this.senderId = senderId;
-	}
-	public int getReceiverId() {
-		return receiverId;
-	}
-	public void setReceiverId(int receiverId) {
-		this.receiverId = receiverId;
-	}
-	public boolean isServerRole() {
-		return serverRole;
-	}
-	public void setServerRole(boolean serverRole) {
-		this.serverRole = serverRole;
-	}
-	public ConcurrentHashMap<String, ServerMetaData> getServerList() {
-		return serverList;
-	}
-	public void setServerList(ConcurrentHashMap<String, ServerMetaData> serverList) {
-		this.serverList = serverList;
-	}
-	public void setServerMetaData(ServerMetaData serverMetaData) {
-		this.serverMetaData = serverMetaData;
-	}
-	public ClientMetaData getClientMetaData() {
-		return clientMetaData;
-	}
-	public void setClientMetaData(ClientMetaData clientMetaData) {
-		this.clientMetaData = clientMetaData;
-	}
-	public Time getTime() {
-		return time;
-	}
-	public void setTime(Time time) {
-		this.time = time;
-	}
-	public String getConnecToServerIp() {
-		return connecToServerIp;
-	}
-	public void setConnecToServerIp(String connecToServerIp) {
-		this.connecToServerIp = connecToServerIp;
-	}
-	public boolean isAddWaitingList() {
-		return addWaitingList;
-	}
-	public void setAddWaitingList(boolean addWaitingList) {
-		this.addWaitingList = addWaitingList;
-	}
 	@Override
-	public String getClientIp() {
+	public String getClientIp() 
+	{
 		return clientIP;
 	}
 
-	public void setClientIP(String clientIP) {
+	public void setClientIP(String clientIP) 
+	{
 		this.clientIP = clientIP;
 	}
-
 	@Override
-	public void doOperation(Interactable message, boolean myClient,
-			String assignedServerIp) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public String getDestinationIp() {
-		// TODO Auto-generated method stub
+	public String getDestinationIp() 
+	{
 		return receiverIpAddress;
 	}
 
 	@Override
-	public boolean isServer() {
-		// TODO Auto-generated method stub
+	public boolean isServer() 
+	{
 		return serverRole;
 	}
+
+	@Override
+	public void setRequestCompleted() 
+	{
+		requestCompleted = true;
+	}
+
+	@Override
+	public String getInteractIP() 
+	{
+		return interactedClientIP;
+	}
+	
+	//========Getter and Setter Methods======================
+
+	public String getSenderIpAddress() 
+	{
+		return senderIpAddress;
+	}
+	public void setSenderIpAddress(String senderIpAddress) 
+	{
+		this.senderIpAddress = senderIpAddress;
+	}
+
+	public String getReceiverIpAddress() 
+	{
+		return receiverIpAddress;
+	}
+
+	public void setReceiverIpAddress(String receiverIpAddress) 
+	{
+		this.receiverIpAddress = receiverIpAddress;
+	}
+	public int getSenderPort()
+	{
+		return senderPort;
+	}
+	public void setSenderPort(int senderPort)
+	{
+		this.senderPort = senderPort;
+	}
+	public int getReceiverPort() 
+	{
+		return receiverPort;
+	}
+	public void setReceiverPort(int receiverPort) 
+	{
+		this.receiverPort = receiverPort;
+	}
+	public Operation getOperation() 
+	{
+		return operation;
+	}
+	public void setOperation(Operation operation) 
+	{
+		this.operation = operation;
+	}
+	public ConcurrentHashMap<String, ClientMetaData> getClientList() 
+	{
+		return clientList;
+	}
+	public void setClientList(ConcurrentHashMap<String, ClientMetaData> clientList) 
+	{
+		this.clientList = clientList;
+	}
+	public ServerMetaData getServerMetaData() 
+	{
+		return serverMetaData;
+	}
+	public void setServerList(ServerMetaData serverMetaData) 
+	{
+		this.serverMetaData = serverMetaData;
+	}
+	public int getSenderId() 
+	{
+		return senderId;
+	}
+	public void setSenderId(int senderId) 
+	{
+		this.senderId = senderId;
+	}
+	public boolean isServerRole() 
+	{
+		return serverRole;
+	}
+	public void setServerRole(boolean serverRole) 
+	{
+		this.serverRole = serverRole;
+	}
+	public ConcurrentHashMap<String, ServerMetaData> getServerList() 
+	{
+		return serverList;
+	}
+	public void setServerList(ConcurrentHashMap<String, ServerMetaData> serverList) 
+	{
+		this.serverList = serverList;
+	}
+	public void setServerMetaData(ServerMetaData serverMetaData) 
+	{
+		this.serverMetaData = serverMetaData;
+	}
+	public ClientMetaData getClientMetaData() 
+	{
+		return clientMetaData;
+	}
+	public void setClientMetaData(ClientMetaData clientMetaData) 
+	{
+		this.clientMetaData = clientMetaData;
+	}
+	public Time getTime() 
+	{
+		return time;
+	}
+	public void setTime(Time time) 
+	{
+		this.time = time;
+	}
+	public String getConnecToServerIp() 
+	{
+		return connecToServerIp;
+	}
+	public void setConnecToServerIp(String connecToServerIp) 
+	{
+		this.connecToServerIp = connecToServerIp;
+	}
+	public boolean isAddWaitingList() 
+	{
+		return addWaitingList;
+	}
+	public void setAddWaitingList(boolean addWaitingList) 
+	{
+		this.addWaitingList = addWaitingList;
+	}
+	
+	public boolean isRequestCompleted() 
+	{
+		return requestCompleted;
+	}
+
+	public void setRequestCompleted(boolean requestCompleted)
+	{
+		this.requestCompleted = requestCompleted;
+	}
+
+	public String getClientIP() 
+	{
+		return clientIP;
+	}
+	
+
+	public String getInteractedClientIP() 
+	{
+		return interactedClientIP;
+	}
+
+	public void setInteractedClientIP(String interactedClientIP) 
+	{
+		this.interactedClientIP = interactedClientIP;
+	}
+
+	@Override
+	public int getSequence() 
+	{
+		return sequence;
+	}
+
+	@Override
+	public void setSequence(int seq) 
+	{
+		sequence = seq;
+	}
+
+
 	
 
 	
