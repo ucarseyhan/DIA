@@ -18,7 +18,7 @@ public class Logger
 		try 
 		{
 	          File file = new File(Constants.RESULTFILE);
-	          BufferedWriter output = new BufferedWriter(new FileWriter(file));
+	          BufferedWriter output = new BufferedWriter(new FileWriter(file,true));
 	          output.write(message+"\n");
 	          output.close();
 		} 

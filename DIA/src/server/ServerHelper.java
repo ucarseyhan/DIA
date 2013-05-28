@@ -1,12 +1,9 @@
 package server;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import messages.Interactable;
-import messages.MessageBox;
 /**
  * Server helper class is used for the purpose each server 
  * is listening the central server. When the central server
@@ -23,8 +20,8 @@ public class ServerHelper implements Runnable {
 	 */
 	private int port;
 	//Message box for coming packets
-	private MessageBox messageBox;
-	private ObjectInputStream inputFromClient;
+	private SocketBox socketBox;
+	//private ObjectInputStream inputFromClient;
 	private ServerSocket serverSocket = null;
 	/**
 	 * Default constructor.
@@ -36,10 +33,10 @@ public class ServerHelper implements Runnable {
 	 * Specified constructor.
 	 * @param port
 	 */
-	public ServerHelper(int port,MessageBox m)
+	public ServerHelper(int port,SocketBox m)
 	{
 		this.port = port;
-		messageBox = m;
+		socketBox = m;
 		try 
 		{
 			serverSocket = new ServerSocket(this.port);
@@ -61,9 +58,9 @@ public class ServerHelper implements Runnable {
 			while (true) 
 			{
 				Socket clientSocket =  serverSocket.accept();
-				inputFromClient = new ObjectInputStream(clientSocket.getInputStream());	
-				Interactable m = (Interactable)inputFromClient.readObject();
-				messageBox.addMessage(m);
+				//inputFromClient = new ObjectInputStream(clientSocket.getInputStream());	
+				//Interactable m = (Interactable)inputFromClient.readObject();
+				socketBox.addMessage(clientSocket);
 			}
 		} 
 		catch (Exception e) 

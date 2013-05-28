@@ -5,9 +5,9 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -26,7 +26,6 @@ import messages.Interactable;
 import messages.InteractionMessage;
 import messages.InteractionResponse;
 import messages.Logger;
-import messages.MessageBox;
 import messages.Operation;
 import messages.ServerMetaData;
 import messages.Time;
@@ -45,7 +44,6 @@ public class Server implements Observer
 	 * Declare variable.
 	 */
 	//Server Information
-	private int id = 0;
 	private String serverIp = "";
 	private int serverPort = Constants.PORT;
 	private int capacity = 0;
@@ -54,7 +52,7 @@ public class Server implements Observer
 	private long rjlThreshold;
 	private long QoSthr;
 	//Server data structure to keep the clients
-	private MessageBox messageBox;
+	private SocketBox socketBox;
 	private ConcurrentHashMap<String, ClientMetaData> clientList;
 	private ConcurrentHashMap<String, ServerMetaData> serverList;
 	private ConcurrentHashMap<String, ClientMetaData> clientLatencyData;
@@ -68,7 +66,8 @@ public class Server implements Observer
 	private InteractionMessage periodicServerMessage;
 	//Waiting list of server.
 	private WaitingList waitingList;
-
+	
+	Socket clientSocket;
 	/**
 	 * Create the Server object with specified 
 	 * IP and id.
@@ -86,8 +85,8 @@ public class Server implements Observer
 		clientList = new ConcurrentHashMap<String,ClientMetaData>();
 		serverList = new ConcurrentHashMap<String,ServerMetaData>();
 		clientLatencyData = new ConcurrentHashMap<String, ClientMetaData>();
-		messageBox = new MessageBox();
-		messageBox.addObserver(this);
+		socketBox = new SocketBox();
+		socketBox.addObserver(this);
 		readServerFiles();
 		readParameterFiles();
 		//Set necessary variables
@@ -95,7 +94,7 @@ public class Server implements Observer
 		this.setServerPort(serverPort);
 
 		//Create the server helper
-		serverHelper = new ServerHelper(serverPort,messageBox);
+		serverHelper = new ServerHelper(serverPort,socketBox);
 
 		//Create the server list.
 		waitingList = new WaitingList();
@@ -106,15 +105,12 @@ public class Server implements Observer
 		 */
 		myServerData = new ServerMetaData(serverPort, serverIp,capacity);
 		//No need to send client list
-		myServerData.setConnectedClient(null);
+		myServerData.setClientList(clientList);
 		
-		periodicServerMessage = new InteractionMessage(serverIp,serverPort,
-														Operation.DEFAULT,
-														clientList,
-														myServerData);
+		periodicServerMessage = new InteractionMessage(serverIp, serverPort,
+				Operation.HELLO, clientList, myServerData);
 		//Set the message sender as server
 		periodicServerMessage.setServerRole(true);
-		periodicServerMessage.setOperation(Operation.HELLO);
 		
 		//Create the random objects
 		rand = new Random();		
@@ -150,14 +146,10 @@ public class Server implements Observer
 	                if(!strLine.equalsIgnoreCase(""))
 	                {
 	                    String ip = strLine;
-	                    if(!serverIp.equals(ip))
-	                    {
-	                    	//Initial connected client is empty
-	                    	ServerMetaData serverMetaData = new ServerMetaData();
-	                    	serverMetaData.setServerIp(ip);
-	                    	serverList.put(ip, serverMetaData);	
-
-	                    }
+						// Initial connected client is empty
+						ServerMetaData serverMetaData = new ServerMetaData();
+						serverMetaData.setServerIp(ip);
+						serverList.put(ip, serverMetaData);
 	                }
 	            }
 	            in.close();
@@ -215,21 +207,12 @@ public class Server implements Observer
 	                if(!strLine.equalsIgnoreCase(""))
 	                {
 	                    splitted = strLine.split(" ");
-	                    int capacity = Integer.parseInt(splitted[0]);
-	                    int rjl = Integer.parseInt(splitted[1]);
-	                    long timerThreshold = (long) Double.parseDouble(splitted[2]);
-	                    long qualityOfServerThr = Long.parseLong(splitted[3]);
-	                    int totalClient = Integer.parseInt(splitted[4]);
-	                    int log = Integer.parseInt(splitted[5]);
-	                    if(log == 1) Constants.LOG = true;
-	                    /**
-	                     * Different than current server then create 
-	                     * the Server meta data
-	                     */
-                    	rjlThreshold= timerThreshold;
-                    	QoSthr = qualityOfServerThr;
-                    	this.totalClient = totalClient;
-                    	if(rjl == 1) RJL = true;
+	                    capacity = Integer.parseInt(splitted[0]);
+	                    RJL  =  (Integer.parseInt(splitted[1]) == 1)? true:false;
+	                    rjlThreshold = (long) Double.parseDouble(splitted[2]);
+	                    QoSthr = Long.parseLong(splitted[3]);
+	                    totalClient = Integer.parseInt(splitted[4]);
+	                    Constants.LOG  =  (Integer.parseInt(splitted[5]) == 1)? true:false;
                     	//Set the server capacity
                     	for (String sIP : serverList.keySet()) 
                     	{
@@ -283,7 +266,7 @@ public class Server implements Observer
 			};
 			int random = rand.nextInt(clientList.size()+serverList.size());
 			if(random == 0) random = rand.nextInt(5) +1;
-			System.out.println("Random:"+random+" Size:"+clientList.size()+" -"+serverList.size() );
+			System.out.println("Random:"+random+" Client Size:"+clientList.size()+" Server Size:"+serverList.size() );
 			//Start the process.
 			timer.schedule(timerTask, random * 500, random * 1000);
 		} 
@@ -311,9 +294,14 @@ public class Server implements Observer
 			while (i.hasNext()) 
 			{
 				String ip = (String) i.next();
-				int port = serverList.get(ip).getPort();
-				periodicServerMessage.setTime(new Time());
-				connectToClientNode(ip, port, periodicServerMessage);
+				if(!ip.equalsIgnoreCase(serverIp))
+				{
+					int port = serverList.get(ip).getPort();
+					periodicServerMessage.setTime(new Time());
+					periodicServerMessage.setServerMetaData(myServerData);
+					connectToServer(ip, port, periodicServerMessage);
+				}
+
 			}
 			/**
 			 * Second share the HELLO messages with connected clients.
@@ -328,6 +316,7 @@ public class Server implements Observer
 				String ip = (String) i.next();
 				int port = clientList.get(ip).getPort();
 				periodicServerMessage.setTime(new Time());
+				periodicServerMessage.setServerMetaData(myServerData);
 				connectToClientNode(ip, port, periodicServerMessage);
 			}
 		
@@ -348,61 +337,34 @@ public class Server implements Observer
 	{
 		try 
 		{
-			if(o instanceof MessageBox)
+			if(o instanceof SocketBox)
 			{
-				MessageBox mBox = (MessageBox)o;
-				this.messageBox = mBox;
-				/**
-				 * Message is in the stack.So get it out and do
-				 * the process.
-				 */
-				Interactable msg = messageBox.pop();
-				/**
-				 * If message is InitialMessage then client try to learn
-				 * the delay statics. Server wants to calculate latency
-				 * just reply.
-				 */
-				if(msg instanceof InitialMessage)
+				SocketBox sBox = (SocketBox)o;
+				this.socketBox = sBox;
+				
+				clientSocket = socketBox.pop();
+				Runnable r = new Runnable() 
 				{
-					
-					InitialMessage init = (InitialMessage)(msg);
-					Logger.print("Server get Initial Message from:"+init.getIp()+" End Result:"+init.isEndResult());
-					/**
-					 * If it is end result then save the client information.
-					 */
-					if(init.isEndResult())
+					Socket comingSocket = clientSocket;
+					@Override
+					public void run() 
 					{
-						ClientMetaData cM = new ClientMetaData(Constants.PORT, init.getIp(), "");
-						cM.setClientServerLatency(init.getServerDelay());
-						clientLatencyData.put(init.getIp(),cM);
-					}
-					else
-					{
-						/**
-						 * Reply to client
-						 */
-						init.setFromServer(true);
-						init.setServerIp(serverIp);
+						ObjectInputStream inputFromClient = null;
 						try 
 						{
-							Socket socket = new Socket(init.getIp(),Constants.PORT);
-							ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
-							toClient.writeObject(init);
-							toClient.flush();
-							socket.close();
-						}
+							inputFromClient = new ObjectInputStream(comingSocket.getInputStream());
+							Interactable m = (Interactable)inputFromClient.readObject();
+							doOperationProcess(m);
+						} 
 						catch (Exception e) 
 						{
 							e.printStackTrace();
-						}
-					}
-				}
-				else
-				{
-					doOperationProcess(msg);
-				}
+						}	
 
-				
+						
+					}
+				};
+				new Thread(r).start();
 			}
 		} 
 		catch (Exception e) 
@@ -422,65 +384,97 @@ public class Server implements Observer
 	{
 		try 
 		{
-			controlListTimerExpiration(); 
-			Operation op = msg.getOperation();
-			String message = "";
-			switch (op) 
+			if(msg instanceof InitialMessage)
 			{
-			//Join client into system
-			case JOIN:
-				message = "JOIN from "+msg.getSenderIpAddress();
-				responseJoinOperation(msg);
-				Logger.print(message);
-				break;
-			//Interact with other clients
-			case INTERACT:
-				String clientIp = msg.getClientIp();
-				String interactIp = msg.getInteractIP();
-				message = "Client:"+clientIp+" wants INTERACT with:"+interactIp;
-				responseInteractOperation(msg);
-				Logger.print(message);
-				break;
-			// Add the client into client list
-			case ADD:
-				message = "ADD from "+msg.getSenderIpAddress();
-				responseAddOPeration(msg);
-				Logger.print(message);
-				break;
-			//Delete client	
-			case DELETE:
-				message = "DELETE from "+msg.getSenderIpAddress();
-				responseDeleteOperation(msg);
-				Logger.print(message);
-				break;
-			//Receives HELLO messages
-			case HELLO:
-				message = "HELLO from "+msg.getSenderIpAddress();
-				responseHelloOperation(msg);
-				Logger.print(message);
-				break;
-			//Return server summary
-			case SUMMARY:
-				message = "SUMMARY from "+msg.getSenderIpAddress();
-				responseSummaryOperation(msg);
-				Logger.print(message);
-				break;
-			case WAITINGLIST:
-				message = "WAITINGLIST from "+msg.getSenderIpAddress();
-				responseWaitingListOperation(msg);
-				Logger.print(message);
-				break;
 				
-				
-
-			default:
-				System.out.println("NULL OPERATION");
-				break;
+				InitialMessage init = (InitialMessage)(msg);
+				Logger.print("Server get Initial Message from:"+init.getIp()+" End Result:"+init.isEndResult());
+				/**
+				 * If it is end result then save the client information.
+				 */
+				if(init.isEndResult())
+				{
+					ClientMetaData cM = new ClientMetaData(Constants.PORT, init.getIp(), "");
+					cM.setClientServerLatency(init.getServerDelay());
+					clientLatencyData.put(init.getIp(),cM);
+				}
+				else
+				{
+					/**
+					 * Reply to client
+					 */
+					init.setFromServer(true);
+					init.setServerIp(serverIp);
+					try 
+					{
+						Socket socket = new Socket(init.getIp(),Constants.PORT);
+						ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
+						toClient.writeObject(init);
+						toClient.flush();
+						socket.close();
+					}
+					catch (Exception e) 
+					{
+						e.printStackTrace();
+					}
+				}
 			}
-		} 
+			else
+			{
+				//controlListTimerExpiration(); 
+				Operation op = msg.getOperation();
+				String message = "";
+				switch (op) 
+				{
+				//Join client into system
+				case JOIN:
+					message = "JOIN REQUEST from:"+msg.getSenderIpAddress();
+					responseJoinOperation(msg);
+					Logger.print(message);
+					break;
+				//Interact with other clients
+				case INTERACT:
+					String clientIp = msg.getClientIp();
+					String interactIp = msg.getInteractIP();
+					message = "Client:"+clientIp+" wants INTERACT with:"+interactIp;
+					responseInteractOperation(msg);
+					Logger.print(message);
+					break;
+				// Add the client into client list
+				case ADD:
+					message = "ADD from "+msg.getSenderIpAddress();
+					Logger.print(message);
+					responseAddOperation(msg);
+					break;
+				//Delete client	
+				case DELETE:
+					message = "DELETE from "+msg.getSenderIpAddress();
+					responseDeleteOperation(msg);
+					Logger.print(message);
+					break;
+				//Receives HELLO messages
+				case HELLO:
+					message = "HELLO from "+msg.getSenderIpAddress();
+					responseHelloOperation(msg);
+					break;
+				//Return server summary
+				case SUMMARY:
+					message = "SUMMARY from "+msg.getSenderIpAddress();
+					responseSummaryOperation(msg);
+					Logger.print(message);
+					break;
+				case WAITINGLIST:
+					message = "WAITINGLIST from "+msg.getSenderIpAddress();
+					responseWaitingListOperation(msg);
+					Logger.print(message);
+					break;
+				}
+			}
+			} 
 		catch (Exception e) 
 		{
 			System.out.println("Server.doOperationProcess()");
+			e.printStackTrace();
 		}
 		
 	}
@@ -499,18 +493,19 @@ public class Server implements Observer
 			Iterator<String> i = set.iterator();
 			while (i.hasNext()) 
 			{
-				Time now = new Time();
 				String sIp = (String) i.next();
-				ServerMetaData sMeta = serverList.get(sIp);
-				Time lastTransaction = sMeta.getLastTransaction();
-				//If the time difference is greater than threshold remove
-				if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
+				if(!sIp.equalsIgnoreCase(serverIp))
 				{
-					serverList.remove(sIp);
-				}
-				
+					Time now = new Time();
+					ServerMetaData sMeta = serverList.get(sIp);
+					Time lastTransaction = sMeta.getLastTransaction();
+					//If the time difference is greater than threshold remove
+					if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
+					{
+						serverList.remove(sIp);
+					}
+				}				
 			}
-			
 			//Check clients
 			set = clientList.keySet();
 			i = set.iterator();
@@ -523,6 +518,7 @@ public class Server implements Observer
 				//If the time difference is greater than threshold remove
 				if(now.timeDifference(lastTransaction) > Constants.TIME_THRESHOLD)
 				{
+					Logger.print("Client:"+cIp+" REMOVED");
 					clientList.remove(cIp);
 					/*
 					 * When client is removed from the server
@@ -643,10 +639,10 @@ public class Server implements Observer
 			
 			for (String serverIp : serverList.keySet())
 			{
-				ArrayList<ClientMetaData> clientList = serverList.get(serverIp).getConnectedClient();
-				for (int i = 0; i < clientList.size(); i++) 
+				ConcurrentHashMap<String, ClientMetaData> clientList = serverList.get(serverIp).getClientList();
+				for (String key: clientList.keySet()) 
 				{
-					if(clientList.get(i).isQoSAssignment()) totalQoS++;
+					if(clientList.get(key).isQoSAssignment()) totalQoS++;
 				}
  			}
 			double result = 1.0 * (totalQoS /  totalClient);
@@ -672,141 +668,87 @@ public class Server implements Observer
 	{
 		try 
 		{
-			String sQoSIp  = "";
-			String sMinCap = "";
-			String sCap    = "";
-			String cIp = msg.getClientIp();
-			sQoSIp  = findQoServer(cIp);
-			sMinCap = findServerWithMinDelayCapacity(cIp);
-			sCap    = findServerCapacity(cIp);
+			String sMin = "";
+			String sOptimal = "";
+			String[] servers;
+			String line = "";
+			
+			//Get client ip
+			String cIp = msg.getSenderIpAddress();
+			Logger.print("JOIN REQUEST from Client:"+cIp);
+			//Find the servers
+			line = findServerWithMinDelayCapacity(cIp);
+			Logger.print("Return Result:"+line);
 			/*
-			 * Try the server with QoS 
+			 * Parse the servers
 			 */
-			if(!sQoSIp.equalsIgnoreCase(""))
+			servers = line.split("~");
+			sMin = servers[0];
+			sOptimal = servers[1];
+			
+			String message = "Client:"+cIp+" sMin:"+sMin+" sOptimal:"+sOptimal;
+			Logger.print(message);
+			/*
+			 * If found sMin and sOptimal are not equal each other then
+			 * send waiting list message to sOptimal.
+			 */
+			if(!sOptimal.equalsIgnoreCase(sMin))
 			{
-				if(!sQoSIp.equalsIgnoreCase(serverIp))
-				{
-					//Control the server capacity
-					if(serverHasCapacity(sQoSIp))
-					{
-						
-						
-						
-						// Connect to coming client into defined server
-						//Inform the server
-						InteractionResponse intResponse = new InteractionResponse(
-								serverIp, serverPort, sQoSIp, Constants.PORT, "");
-						intResponse.setClientIP(cIp);
-						intResponse.setConnecToServerIp(sQoSIp);
-						intResponse.setOperation(Operation.ADD);
-						intResponse.forward(sQoSIp, Constants.PORT, intResponse);
-						// Create the messages and send it to client
-						intResponse = new InteractionResponse(
-								serverIp, serverPort, cIp, Constants.PORT, "");
-						intResponse.setConnecToServerIp(sQoSIp);
-						//Client uses this to inform the server
-						intResponse.setQoSAssignment(true);
-						intResponse.setOperation(Operation.JOIN);
-						intResponse.forward(cIp, Constants.PORT, intResponse);
-					}
-				}
-				/*
-				 * This client is assigned to me
-				 */
-				else if(sQoSIp.equalsIgnoreCase(serverIp))
-				{
-					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(serverIp);
-					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
-					//Update the client metadata in first message from client
-					clientList.put(cIp, new ClientMetaData());
-					capacity--;
-					
-					
-				}
-
+				//Inform the server
+				InteractionResponse intResponse = new InteractionResponse(
+						serverIp, serverPort, sOptimal, Constants.PORT, "");
+				intResponse.setClientIP(cIp);
+				intResponse.setAddWaitingList(true);
+				intResponse.setServerRole(true);
+				intResponse.setOperation(Operation.WAITINGLIST);
+				connectToServer(sOptimal, Constants.PORT, intResponse);
 			}
-			/*
-			 * Try the server with minimum delay and 
-			 * available capacity 
-			 */
-			else if(!sMinCap.equalsIgnoreCase(""))
+			if(!sMin.equalsIgnoreCase(""))
 			{
-				if(!sMinCap.equalsIgnoreCase(serverIp))
+				if(!sMin.equalsIgnoreCase(serverIp))
 				{
 					//Connect to coming client into defined server
 					//Inform the server
 					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, sMinCap, Constants.PORT, "");
+							serverIp, serverPort, sMin, Constants.PORT, "");
 					intResponse.setClientIP(cIp);
-					intResponse.setConnecToServerIp(sMinCap);
+					intResponse.setConnecToServerIp(sMin);
 					intResponse.setOperation(Operation.ADD);
-					intResponse.forward(sMinCap, Constants.PORT, intResponse);
+					connectToServer(sMin, Constants.PORT, intResponse);
+					Logger.print("FORWARD :"+sMin+" CLIENT:"+intResponse.getClientIp());
 					//Create the messages and send it to client
 					intResponse = new InteractionResponse(
 							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(sMinCap);
+					intResponse.setConnecToServerIp(sMin);
 					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
+					connectToClientNode(cIp, Constants.PORT, intResponse);
+					message = "Forwarded Server:"+sMin+" Client:"+cIp;
+					Logger.print(message);
 
 				}
-				else if(sMinCap.equalsIgnoreCase(serverIp))
+				else if(sMin.equalsIgnoreCase(serverIp))
 				{
 					InteractionResponse intResponse = new InteractionResponse(
 							serverIp, serverPort, cIp, Constants.PORT, "");
 					intResponse.setConnecToServerIp(serverIp);
 					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
+					connectToClientNode(cIp, Constants.PORT, intResponse);
 					//Update the client metadata in first message from client
-					clientList.put(cIp, new ClientMetaData());
+					ClientMetaData cMeta = clientLatencyData.get(cIp);
+					cMeta.setConnectedServerIp(serverIp);
+					cMeta.setLastTransaction(new Time());
+					clientList.put(cIp, cMeta);
+					Logger.print("responseJoinOperation Put Client:"+cIp);
+					capacity--;
+					message = "Accepted Server:"+sMin+" Client:"+cIp;
+					Logger.print(message);
 				}
-
-				
 			}
-			/*
-			 * Try the server that satisfy the capacity requirement
-			 */
-			else if(!sCap.equalsIgnoreCase(""))
-			{
-				if(!sCap.equalsIgnoreCase(serverIp))
-				{
-					//Connect to coming client into defined server
-					//Inform the server
-					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, sCap, Constants.PORT, "");
-					intResponse.setClientIP(cIp);
-					intResponse.setConnecToServerIp(sCap);
-					intResponse.setOperation(Operation.ADD);
-					intResponse.forward(sCap, Constants.PORT, intResponse);
-					//Create the messages and send it to client
-				    intResponse = new InteractionResponse(
-							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(sCap);
-					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
-					
-
-				}
-				else if(sCap.equalsIgnoreCase(serverIp))
-				{
-					InteractionResponse intResponse = new InteractionResponse(
-							serverIp, serverPort, cIp, Constants.PORT, "");
-					intResponse.setConnecToServerIp(serverIp);
-					intResponse.setOperation(Operation.JOIN);
-					intResponse.forward(cIp, Constants.PORT, intResponse);
-					//Update the client metadata in first message from client
-					clientList.put(cIp, new ClientMetaData());
-				}
-
-			}
-			
 		} 
 		catch (Exception e) 
 		{
 			// TODO: handle exception
-			System.out.println("Server.responseAddOperation()");
+			System.out.println("Server.responseJoinOperation()");
 			e.printStackTrace();
 		}
 	}
@@ -826,12 +768,19 @@ public class Server implements Observer
 			
 			String interactedClientIp = msg.getInteractIP();
 			String clientIp = msg.getSenderIpAddress();
+			Logger.print("Server:"+serverIp+" Gets INTERACTION:"+clientIp);
 			if(!interactedClientIp.equalsIgnoreCase(" "))
 			{
+				Logger.print("INTERACTED IP:"+interactedClientIp);
+				for(String c:clientList.keySet())
+				{
+					Logger.print("ConnectedClient:"+c);
+				}
 				if(clientList.containsKey(interactedClientIp))
 				{
 					String message = "INTERACTION COMPLETED";
 					//Client is my client
+					Logger.print("COMPLETED");
 					int sequence = msg.getSequence();
 					InteractionResponse intResponse = new InteractionResponse(
 							serverIp, serverPort, clientIp,
@@ -844,7 +793,8 @@ public class Server implements Observer
 				else
 				{
 					String assignedServerIp = findClientAssignedServer(interactedClientIp);
-					if(!assignedServerIp.equalsIgnoreCase(" "))
+					Logger.print("Found Assigned Server:"+assignedServerIp);
+					if(!assignedServerIp.equalsIgnoreCase(""))
 					{
 						connectToServer(assignedServerIp, Constants.PORT, msg);
 					}
@@ -864,7 +814,7 @@ public class Server implements Observer
 	 * Response to add operation.
 	 * @param msg
 	 */
-	public void responseAddOPeration(Interactable msg)
+	public void responseAddOperation(Interactable msg)
 	{
 		try 
 		{
@@ -872,7 +822,10 @@ public class Server implements Observer
 			if(serverList.containsKey(senderIp))
 			{
 				String clientIP = msg.getClientIp();
-				clientList.put(clientIP, new ClientMetaData());
+				ClientMetaData cMeta = new ClientMetaData();
+				cMeta.setConnectedServerIp(serverIp);
+				clientList.put(clientIP, cMeta);
+				Logger.print("responseAddOperation ClientIP:"+clientIP);
 				capacity--;
 				
 			}
@@ -916,6 +869,7 @@ public class Server implements Observer
 							if(currentDelay < QoSthr)
 							{
 								sIp = walkSip;
+								break;
 							}
 						}
 
@@ -944,6 +898,7 @@ public class Server implements Observer
 	public String findServerWithMinDelayCapacity( String cIp)
 	{
 		String sIp = "";
+		String sOptimal = "";
 		long delay = Long.MAX_VALUE;
 		try 
 		{
@@ -961,25 +916,34 @@ public class Server implements Observer
 						if(sMeta != null)
 						{
 							/*
-							 * If server has least delay
+							 * If server has least delay then 
+							 * set the optimum one.
 							 */
+							if(currentDelay < delay)
+							{
+								sOptimal = walkSip;
+							}
+							/*
+							 * If server has capacity 
+							 * then set the sIp
+							 */
+							Logger.print("Capacity:"+sMeta.getCapacity());
 							if(currentDelay < delay && sMeta.getCapacity() > 0)
 							{
 								sIp = walkSip;
-								delay = currentDelay;
 							}
+							delay = currentDelay;
 						}
-
 					}
 				}
 			}
-			return sIp;
+			return sIp+"~"+sOptimal;
 			
 		} 
 		catch (Exception e) 
 		{
 			e.printStackTrace();
-			return sIp;
+			return "";
 		}
 	}
 	//================================================================================
@@ -997,7 +961,8 @@ public class Server implements Observer
 		try 
 		{
 
-			for (String walkSip : serverList.keySet()) {
+			for (String walkSip : serverList.keySet()) 
+			{
 				ServerMetaData sMeta = serverList.get(walkSip);
 				if (sMeta != null) 
 				{
@@ -1150,10 +1115,12 @@ public class Server implements Observer
 					{
 						clientList.remove(clientIp);
 						clientList.put(clientIp, clientMetaData);
+						Logger.print("responseHelloOperation Put Client:"+clientIp);
 					}
 					else
 					{
 						clientList.put(clientIp, clientMetaData);
+						Logger.print("responseHelloOperation Put Client:"+clientIp);
 						
 					}
 				}
@@ -1266,12 +1233,10 @@ public class Server implements Observer
 	{
 		try 
 		{
-			Set<String> set = serverList.keySet();
-			Iterator<String> i = set.iterator();
-			while (i.hasNext()) 
+			for(String key: serverList.keySet())
 			{
-				String ip = (String) i.next();
-				if(ip.equals(cIp)) return ip ;	
+				ConcurrentHashMap<String , ClientMetaData> list = serverList.get(key).getClientList();
+				if(list.containsKey(cIp)) return key;
 			}
 			return "";
 		} 
@@ -1306,10 +1271,8 @@ public class Server implements Observer
 		
 
 	}
-	
 	public void connectToServer(String ip,int port,Interactable m)
 	{
-
 		try 
 		{
 			Socket socket = new Socket(ip, port);
@@ -1374,12 +1337,6 @@ public class Server implements Observer
 	}
 	//===============================================================================================
 	//////////////////////////GETTER and SETTER METHODS///////////////////////////////
-	public int getId() {
-		return id;
-	}
-	public void setId(int id) {
-		this.id = id;
-	}
 	
 	public int getCapacity() {
 		return capacity;
@@ -1399,26 +1356,35 @@ public class Server implements Observer
 	public void setServerPort(int serverPort) {
 		this.serverPort = serverPort;
 	}
-	public MessageBox getMessageBox() {
-		return messageBox;
+
+	
+	public SocketBox getSocketBox() 
+	{
+		return socketBox;
 	}
-	public void setMessageBox(MessageBox messageBox) {
-		this.messageBox = messageBox;
+	public void setSocketBox(SocketBox socketBox)
+	{
+		this.socketBox = socketBox;
 	}
-	public ConcurrentHashMap<String, ClientMetaData> getClientList() {
+	public ConcurrentHashMap<String, ClientMetaData> getClientList() 
+	{
 		return clientList;
 	}
-	public void setClientList(ConcurrentHashMap<String, ClientMetaData> clientList) {
+	public void setClientList(ConcurrentHashMap<String, ClientMetaData> clientList) 
+	{
 		this.clientList = clientList;
 	}
 
-	public ServerHelper getServerHelper() {
+	public ServerHelper getServerHelper()
+	{
 		return serverHelper;
 	}
-	public void setServerHelper(ServerHelper serverHelper) {
+	public void setServerHelper(ServerHelper serverHelper) 
+	{
 		this.serverHelper = serverHelper;
 	}
-	public ConcurrentHashMap<String, ServerMetaData> getServerList() {
+	public ConcurrentHashMap<String, ServerMetaData> getServerList() 
+	{
 		return serverList;
 	}
 	public void setServerList(ConcurrentHashMap<String, ServerMetaData> serverList) {

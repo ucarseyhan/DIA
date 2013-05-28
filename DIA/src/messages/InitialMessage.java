@@ -56,7 +56,8 @@ public class InitialMessage implements Interactable,Serializable
 		this.endResult = endResult;
 	}
 
-	public Hashtable<String, Long> getServerDelay() {
+	public Hashtable<String, Long> getServerDelay() 
+	{
 		return serverDelay;
 	}
 
@@ -111,68 +112,69 @@ public class InitialMessage implements Interactable,Serializable
 	}
 
 	@Override
-	public Operation getOperation() {
-		// TODO Auto-generated method stub
+	public Operation getOperation() 
+	{
 		return null;
 	}
 
 	@Override
-	public boolean isServer() {
-		// TODO Auto-generated method stub
+	public boolean isServer() 
+	{
 		return false;
 	}
 
 	@Override
-	public ServerMetaData getServerMetaData() {
+	public ServerMetaData getServerMetaData() 
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public ClientMetaData getClientMetaData() {
-		// TODO Auto-generated method stub
+	public ClientMetaData getClientMetaData() 
+	{
 		return null;
 	}
 
 	@Override
-	public Time getTime() {
-		// TODO Auto-generated method stub
+	public Time getTime() 
+	{
 		return time;
 	}
 
 	@Override
-	public String getConnectedServer() {
-		// TODO Auto-generated method stub
+	public String getConnectedServer() 
+	{
 		return null;
 	}
 
 	@Override
-	public boolean isAddWaitingList() {
-		// TODO Auto-generated method stub
+	public boolean isAddWaitingList() 
+	{
 		return false;
 	}
 
 	@Override
-	public void setRequestCompleted() {
-		// TODO Auto-generated method stub
-		
+	public void setRequestCompleted()
+	{
 	}
 
 	@Override
-	public String getInteractIP() {
-		// TODO Auto-generated method stub
+	public String getInteractIP() 
+	{
+
 		return null;
 	}
 
 	@Override
-	public int getSequence() {
-		// TODO Auto-generated method stub
+	public int getSequence() 
+	{
 		return 0;
 	}
 
 	@Override
-	public void setSequence(int seq) {
-		// TODO Auto-generated method stub
+	public void setSequence(int seq) 
+	{
 		
 	}
 	

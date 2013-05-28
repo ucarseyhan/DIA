@@ -36,10 +36,19 @@ public class ClientMetaData implements Comparable<ClientMetaData>,Serializable
 		clientServerLatency = new Hashtable<String, Long>();
 	}
 	
+	public ClientMetaData(int port, String ipAddress,String serverIp,Hashtable<String, Long> latency) 
+	{
+		this.port = port;
+		this.ipAddress = ipAddress;
+		this.connectedServerIp = serverIp;
+		lastTransaction = new Time();
+		clientServerLatency = latency;
+	}
+	
 	//Default constructor.
 	public ClientMetaData()
 	{
-		
+		lastTransaction = new Time();
 	}
 	
 	@Override

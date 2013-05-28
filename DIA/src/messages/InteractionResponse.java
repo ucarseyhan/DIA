@@ -39,7 +39,7 @@ public class InteractionResponse extends InteractionMessage implements Interacta
 	@Override
 	public String getClientIp() 
 	{
-		return super.getSenderIpAddress();
+		return super.getClientIp();
 	}
 	@Override
 	public String getDestinationIp() 

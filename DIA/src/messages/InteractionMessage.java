@@ -25,7 +25,6 @@ public class InteractionMessage implements Interactable,Serializable
 	//Declare variables
 	private String senderIpAddress     = ""; //Sender IP address
 	private int senderPort = 0;				 //Sender port
-	private int senderId = 0;
 	private String receiverIpAddress   = ""; //Receiver IP address
 	private int receiverPort = 0;			 //Receiver port
 	
@@ -84,29 +83,22 @@ public class InteractionMessage implements Interactable,Serializable
 		this.time = new Time();
 	}
 	
-//	periodicClientMessage = new InteractionMessage(clientIPAddress,clientPort,
-//			Operation.DEFAULT,
-//			myClientData);
 	
 	public void forward(String ip,int port,Interactable m)
 	{
+
 		try 
 		{
-			try 
-			{
-				Socket socket = new Socket(ip,port);
-				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-				toServer.writeObject(m);
-				toServer.flush();
-				socket.close();
-			} 
-			catch (Exception e) 
-			{
-				e.printStackTrace();
-			}
+			Socket socket = new Socket(ip, port);
+			ObjectOutputStream toServer = new ObjectOutputStream(
+					socket.getOutputStream());
+			toServer.writeObject(m);
+			toServer.flush();
+			socket.close();
 		} 
 		catch (Exception e) 
 		{
+			e.printStackTrace();
 		}
 	}
 	/**
@@ -115,17 +107,16 @@ public class InteractionMessage implements Interactable,Serializable
 	 */
 	public String getConnectedServer()
 	{
-		return clientMetaData.getConnectedServerIp();
+		return connecToServerIp;
 	}
 	@Override
 	public String getClientIp() 
 	{
 		return clientIP;
 	}
-
-	public void setClientIP(String clientIP) 
+	public void setClientIP(String cIP) 
 	{
-		this.clientIP = clientIP;
+		this.clientIP = cIP;
 	}
 	@Override
 	public String getDestinationIp() 
@@ -187,6 +178,7 @@ public class InteractionMessage implements Interactable,Serializable
 	{
 		this.receiverPort = receiverPort;
 	}
+	@Override
 	public Operation getOperation() 
 	{
 		return operation;
@@ -210,14 +202,6 @@ public class InteractionMessage implements Interactable,Serializable
 	public void setServerList(ServerMetaData serverMetaData) 
 	{
 		this.serverMetaData = serverMetaData;
-	}
-	public int getSenderId() 
-	{
-		return senderId;
-	}
-	public void setSenderId(int senderId) 
-	{
-		this.senderId = senderId;
 	}
 	public boolean isServerRole() 
 	{
@@ -281,12 +265,6 @@ public class InteractionMessage implements Interactable,Serializable
 	{
 		this.requestCompleted = requestCompleted;
 	}
-
-	public String getClientIP() 
-	{
-		return clientIP;
-	}
-	
 
 	public String getInteractedClientIP() 
 	{
